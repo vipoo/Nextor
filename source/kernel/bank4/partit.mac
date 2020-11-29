@@ -253,7 +253,7 @@ EXTP_LOOP:
 	ld	d,(ix+POFF_PSIZE+1)
 	ld	l,(ix+POFF_PSIZE+2)
 	ld	h,(ix+POFF_PSIZE+3)
-EXTP_ENTRYADD:    
+EXTP_ENTRYADD:
 	push	de
 	push	hl
 	ld	ix,TMP_SEC##
@@ -517,7 +517,7 @@ _AUTODRV:
 
 
 ; AUTODRV - DOS 1 version
-; 
+;
 ; This routine is called at boot time, in the OLDDOS routine, when DOS 1
 ; is to be invoked because a DOS 1 boot sector has been detected or because
 ; the "1" key is pressed.
@@ -565,7 +565,7 @@ AUTODRV_LOOP:
 	jp	nz,AUTODRV_END
 
 	;* Check driver type
-	
+
 	ld	a,(iy+1)
 	inc	a
 	jp	nz,AUTODRV_NEXT		;Skip if no ROM driver (should never occur)
@@ -599,7 +599,7 @@ AUTODRV_DRVLOOP:
 	ld_a_iyl
 	ld	(ix+UD1_SLOT##),a		;Set slot number in table entry
 	ld	a,c
-    ld  (ix+UD1_REL##),a    
+    ld  (ix+UD1_REL##),a
 	push	af
 	xor a
 	push	bc
@@ -641,7 +641,7 @@ AUTODRV_DRVL2:
 
 	ld	d,1
 	call	AUTO_ASSIGN
-AUTODRV_DRVL3:    
+AUTODRV_DRVL3:
 
 	cp	2			;Did we enter disk emulation mode?
 	jp	z,AUTOD_EMU	;Yes: discard everything else and return
@@ -669,10 +669,10 @@ AUTODRV_NEXT:			;Go to next driver
 AUTODRV_END:
 	pop	bc
 	ret
-	
+
 
 ; AUTODRV - DOS 2 version
-; 
+;
 ; This routine is called at boot time, in the KINIT
 ; routine, after all drivers have been initialized and all unit descriptors
 ; have been created (INIT_UNITS invokation loop complete).
@@ -746,7 +746,7 @@ AUTOD_OK250:
 	jp	SETNUMDRV
 AUTOD_UDFND2:
 
-	;--- If the driver provides configuration, 
+	;--- If the driver provides configuration,
 	;    try to get config from the driver itself
 
 	bit 2,a
@@ -863,7 +863,7 @@ SETNUMD_NOUD:
 ; If there is a device having a partition that is properly formatted in FAT12
 ; or FAT16 and has the "active" flag set (the MSB of the first byte
 ; of the partition table entry), then this device and that partition will be assigned
-; regardless of the device number. If there are more than one devices matching this, 
+; regardless of the device number. If there are more than one devices matching this,
 ; the one with the smallest device number will be assigned. If there are multiple
 ; active partitions in the same device, the first one found will be assigned.
 ;
@@ -872,14 +872,14 @@ SETNUMD_NOUD:
 ; but the device and LUN are fixed (passed as parameters).
 ; This one is used if the device provides its own configuration.
 ;
-; Input:  HL = DOS 2 mode: 
+; Input:  HL = DOS 2 mode:
 ;                  Address of unit descriptor, it must have UD_SLOT and UD_PHYS set
-;              DOS 1 mode: 
+;              DOS 1 mode:
 ;                  Address of entry in device-based drives table, must have UD_SLOT set
 ;         B = Device index (AUTO_ASPART only)
 ;         C = LUN index (AUTO_ASPART only)
 ;         D  = 0: Do NOT try to enter disk emulation mode
-;              1: Enter disk emulation mode if possible 
+;              1: Enter disk emulation mode if possible
 ;
 ; Output: A  = Error code
 ;              0: Ok
@@ -951,14 +951,14 @@ AUTO_NOEMU:
     bit 7,d
 	jr z,AUTO_COMMON3
 
-;AUTO_ASPART:	
+;AUTO_ASPART:
 	ld (ix+AAD_LOOP_DEV_INDEX),b
 	ld (ix+AAD_LOOP_LUN_INDEX),c
 	xor a
 	ld (ix+AAD_CAND_PART_DEVLUN),a
 	ld (ix+AAD_CURR_PART_DEVLUN),a
 
-	jp AA_CHKDUP_OK 
+	jp AA_CHKDUP_OK
 
 ;AUTO_ASSIGN:
 AUTO_COMMON3:
@@ -1006,7 +1006,7 @@ AA_CHKDUP_LOOP1:
 	jr	z,AA_CHKDUP_NEXT1
 	cp	d
 	jr	nz,AA_CHKDUP_NEXT1
-	
+
 	ld	a,(iy+UD1_LI##)		;Check LUN index
 	cp	e
 	jr	nz,AA_CHKDUP_NEXT1
@@ -1050,7 +1050,7 @@ AA_CHKDUP_LOOP:
 	jr	z,AA_CHKDUP_NEXT	;unit descriptor (as created by INIT_UNITS)
 	cp	d
 	jr	nz,AA_CHKDUP_NEXT
-	
+
 	ld	a,(iy+UD_LI##)		;Same thing if LUN index is 0
 	or	a
 	jr	z,AA_CHKDUP_NEXT
@@ -1103,7 +1103,7 @@ AA_CHKDUP_OK:
 	jr nz,AA_NO_SKIP_AUTOMAP
 	bit 3,a
 	jp  nz,AA_LLOOP_NEXT	;Device should not be used for automapping
-AA_NO_SKIP_AUTOMAP:	
+AA_NO_SKIP_AUTOMAP:
 	and	1
 	rrca
 	ld	d,a	;Save removable device flag for later
@@ -1156,10 +1156,10 @@ AA_PX_POK:
     bit 0,c
     jp z,AA_PX_NOEMU    ;Bit 0 of status byte must be set
     bit AAFLAG_ENTER_EMU_MODE,(ix+AAD_FLAGS)
-    jp z,AA_PX_NOEMU    ;Enter emulation mode must have been requested    
-    ld a,(0F348h)    
+    jp z,AA_PX_NOEMU    ;Enter emulation mode must have been requested
+    ld a,(0F348h)
     cp (ix+AAD_DRIVER_SLOT) ;Must be the primary slot
-    jp nz,AA_PX_NOEMU    
+    jp nz,AA_PX_NOEMU
     ld a,(ix+AAD_CURR_PART_INDEX)   ;Must be the first partition
     dec a
     jp nz,AA_PX_NOEMU
@@ -1227,7 +1227,7 @@ AA_PX_DOEMU:
     pop hl
     inc a
     cp 2
-    ret z    
+    ret z
 
 AA_PX_NOEMU:
     ld	a,b	;Partition type
@@ -1236,7 +1236,7 @@ AA_PX_NOEMU:
     ld a,(ix+AAD_CURR_PART_INDEX)
     or 80h
     jp AA_PXLOOP
-AA_PX_NOEX:    
+AA_PX_NOEX:
 	cp	PT_FAT12
 	jr	z,AA_PLOOP_OKTYPE
 	ld	a,(DOS_VER##)
@@ -1564,7 +1564,7 @@ AA_WSEC:
 
 AA_RSEC:
     or a
-AA_DOSEC:    
+AA_DOSEC:
 	ld_iyh_c
 	ld	hl,DEV_RW##
 	ld	(BK4_ADD##),hl
@@ -1581,7 +1581,7 @@ AA_DOSEC:
 
 
 ;This routine checks the validity of a FAT boot sector.
-;It is basically the same as FIND_UPB in val.mac in bank 2, 
+;It is basically the same as FIND_UPB in val.mac in bank 2,
 ;except that it does not ask the driver for a DPB,
 ;and rejects FAT16 in DOS 1.
 ;Output: Z if valid boot sector
@@ -1667,7 +1667,7 @@ NO_ODD_ENTRIES:
 		srl	b
 		rr	c
 		srl	b
-		rr	c	
+		rr	c
 		add	hl,bc	;HL=Num of root dir sectors
 
 		ld	c,(iy+UPB_RES##)
@@ -1784,7 +1784,7 @@ GO_EMU:
 	ld	b,a
 	ld	a,0
 	ret	nc
-	
+
 	;> Index of image to mount at boot must be between 1 and num of entries
 
 	ld	a,(ix+17)
@@ -2068,7 +2068,7 @@ GDRVR_CHECK_DRVR:
 	ld	a,e
 	cp	0FFh
 	jr	nz,GDRVR_IDRVR
-		
+
 	ld	b,1	;B=Driver index
 GDRVR_CHECK_LOOP:
 	push	bc
@@ -2396,7 +2396,7 @@ GDLI_DOS1:
 	ld	a,(ix+2)
 	or	a
 	jr	nz,GDLI_ISDVB_OK
-	
+
 	xor		a
 	ret
 
@@ -2512,7 +2512,7 @@ CDRV_NODOS1:
 	rla
 	rla
 	and 1100b
-	or b   
+	or b
 	ld b,a ;Main slot + subslot
 
 	ld a,(RAMAD0##)
@@ -2627,7 +2627,7 @@ UNMAP_OK1:
 
 	push	hl
 	pop	ix
-	
+
 	ld	a,(ix+UD_DFLAGS##)
 	and	UFM_DB
 	jr	z,UNMAP_NEXT2
@@ -2897,7 +2897,7 @@ MAP_FOUND:
 	sub 	(hl)	;A=Num of drives skipped in last step
 	ld	d,a
 	ld	a,c
-	sub	d	
+	sub	d
 	ld	e,a	;E = relative unit number for the controller
 	inc	hl
 	ld	d,(hl)	;D = slot of the controller
@@ -2947,7 +2947,7 @@ MAP_FOUND:
 MAP_DEF_DRVB:
 	ld	a,(iy+2)	;A = first drive allocated to the controller
 	add	a,(ix+UD_REL##)
-	ld	e,a		;E = drive letter for the relative drive at boot time	
+	ld	e,a		;E = drive letter for the relative drive at boot time
 	ld	d,0
 	ld	hl,MB_DEF##
 	add	hl,de
@@ -2996,7 +2996,7 @@ MAP_DEF_DEVB_NOCFG:
 	dec	de
 	ld	(de),a
 	ld	a,.IDEVL##
-	jp	SETNUMDRV	
+	jp	SETNUMDRV
 
 	;--- Map the drive to a specific driver and device
 	;    Input: DE=Mapping data, HL=Address of pointer to unit desciptor,
@@ -3175,7 +3175,7 @@ MAP_DRV_UNCH:
 	call	CREATE_UD
 	pop	iy
 	ret	nz
-	
+
 	ld	a,(iy)
 	ld	(ix+UD_SLOT##),a
 	ld	a,(iy+1)
@@ -3624,7 +3624,7 @@ CRUD2:
 	;>>> DOS 1 version of MAPDRV
 
 MAPDRV_DOS1:
-	
+
 	ld	a,b	;File mounting is not supported in DOS 1 mode
 	cp	3
 	ld	a,.IDRV##
@@ -3655,7 +3655,7 @@ MAPDRV_DOS1:
 	call	GET_DVB_POINTER
 	ld	a,.IDRV##
 	ret	c	;Error if drive not assigned to a Nextor device-based driver
-	
+
 	;--- Get pointer to FAT buffer and mark it as invalid
 
 	push	iy
@@ -3691,7 +3691,7 @@ MAPDOS1_DPBOK:
 	jr	nz,MAPDOS1_NOUNMAP
 
 	ld	(ix+UD1_DI##),0	;Set device index to 0
-	
+
 	jp	MAPDOS1_END_OK
 MAPDOS1_NOUNMAP:
 
@@ -4054,7 +4054,7 @@ F_Z80MODE_GO:
 	ld	a,c
 	or	a
 	jp	z,IDRVR_RET
-	
+
 	ld	e,b
 	ld	hl,DRVTBL
 	ld	b,4
@@ -4093,12 +4093,12 @@ Z80MODE_GET:
 	ld	hl,TURBO_VECT##
 	ld	b,4
 Z80MODE_GET_LOOP:
-	ld	a,(hl)	
+	ld	a,(hl)
 	cp	c
 	jr	z,Z80MODE_RETSET	;Slot is in TRUBO_VECT: Z80 mode is set
 	inc	hl
 	djnz	Z80MODE_GET_LOOP
-	
+
 	xor	a
 	ld	d,a	;Slot not in TRUBO_VECT: Z80 mode not set
 	ret
@@ -4308,7 +4308,7 @@ MAPDRV_MNT	equ	MAPDRV_SEC+5	;0=no file mount, 1=mount normal, 2=mount read-only
 	jp	c,MAPDRV_OKPARS
 
 	;* Extract partition number or file name
-	
+
 	ld	a,(DOS_VER##)
 	or	a
 	jr	z,MAPDRV_NOMNT
@@ -4349,7 +4349,7 @@ MAPDRV_MNT	equ	MAPDRV_SEC+5	;0=no file mount, 1=mount normal, 2=mount read-only
 	and	1
 	inc	a
 	ld	(MAPDRV_MNT),a
-	
+
 	ld	a,')'
 	call	SYNCHR
 	jp	MAPDRV_OKPARS
@@ -4438,7 +4438,7 @@ MAPDRV_OKPARS:
 	ld	b,3
 	ld	c,_MAPDRV##
 	call	BASIC_DOS
-	
+
 	jp	MAPDRV_DOLOCK
 
 MAPDRV_NOMNT2:
@@ -4505,7 +4505,7 @@ MAPDRV_GETCUR:
 	or	a
 	ld	e,76	;Throw "Invalid driver" error if unmapped
 	jp	z,BASIC_ERR
-	
+
 	ld	a,(MAPDRV_DEV)
 	or	a
 	jr	nz,MAPDRV_GOTDEV
@@ -4546,7 +4546,7 @@ MAPDRV_NOP0:
 
 	cp	4+1
 	jr	nc,MAPDRV_LOGPAR
-	
+
 	push	af
 	ld	a,(MAPDRV_SEG)
 	ld	b,a
@@ -4560,7 +4560,7 @@ MAPDRV_NOP0:
 	call	BASIC_DOS
 	ld	a,b
 	cp	5	;Extended partition?
-	
+
 	pop	bc
 	ld	a,b
 	ld	b,0
@@ -4632,7 +4632,7 @@ MAPDRV_END:
 
 
 MAPDRV_HELP:
-	;    ---------------------------------------- 
+	;    ----------------------------------------
 	db	"CALL MAPDRV[L](<drive>",1
 	db  "               [,<partition>",1
 	db  "               [,<devlun>",1
@@ -4789,7 +4789,7 @@ CUSR_GO:
 
 
 USR_HELP:
-	;    ---------------------------------------- 
+	;    ----------------------------------------
 	db	"CALL USR(<run address>",1
 	db  "         [,<registers address>])",13,10
 	db  13,10
@@ -4894,7 +4894,7 @@ LOCKDRV_SHOW:
 	ld	hl,LOCK_S
 LOCKDRV_SHOW2:
 	call	PRINT
-	
+
 	pop	hl
 	ret
 
@@ -4908,7 +4908,7 @@ LOCK_S:
 
 
 LOCKDRV_HELP:
-	;    ---------------------------------------- 
+	;    ----------------------------------------
 	db	"CALL LOCKDRV(<drive> [,<action>])",13,10
 	db	13,10
 	db  "<drive>: ",34,"A:",34," to ",34,"H:",34," or 1 to 7,",1
@@ -5007,7 +5007,7 @@ JDERBDN:
 	jp	BASIC_ERR
 
 CHDRV_HELP:
-	;    ---------------------------------------- 
+	;    ----------------------------------------
 	db	"CALL CHDRV(<drive>)",13,10
 	db  13,10
 	db  "<drive>: ",34,"A:",34," to ",34,"H:",34," or 1 to 8"
@@ -5287,7 +5287,7 @@ NEXVER_END:
 	ret
 
 CNEXTOR_S:
-;    ---------------------------------------- 
+;    ----------------------------------------
     db	13,10,"Available Nextor CALL commands:",13,10
 	db	13,10
 	db	"_CHDRV (same as MSX-DOS 2,",1
@@ -5449,7 +5449,7 @@ OK_NAME:
 	ld	a,(BUF_DRIVER+4)
 	and	1
 	jr	z,SHOW_REL
-	
+
     ld a,(ix+4)
     or a
     jr nz,SHOW_DEVLUN
@@ -5519,7 +5519,7 @@ ONDRV_S:
 RO_S:
 	db	" (read only)",0
 NO_DEV_MSG:
-    db  "No device assigned",0    
+    db  "No device assigned",0
 COLON_AND_CRLF:
 	db	":"
 CRLF:
@@ -5776,7 +5776,7 @@ PRSLOT::
 	pop	af
 	jp	CHPUT		;Print sub-slot number
 
-		
+
 ;-----------------------------------------------------------------------------
 ;
 ; Try to extract '(' from text. If end of instruction,
@@ -6044,7 +6044,7 @@ DRVS1CHG:
 
 DRVS1NEXT:
 	pop hl
-DRVS1NX2:	
+DRVS1NX2:
 	pop bc
 	inc hl
 	inc hl
@@ -6304,7 +6304,7 @@ ASKDRVCFG_NEXT:
 	ret
 
 ASKDRVCFG_GOEMU:
-    pop af    
+    pop af
     ld a,3
     ret
 

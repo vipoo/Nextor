@@ -327,11 +327,19 @@ not_exp_slot:
 sec_slot_loop:	push	hl
 		push	af			;Enable the slot under
 		ld	h,80h			; question into page-2 and
+
+	;;;;; HACK - DO NOT ALLOW SLOT 3-3 TO BE SCANNED
+		cp	08Fh
+		jr	z, no_mapper
+
 		call	ENASLT##		; find out if it contains a
 		call	TEST_MAPPER_SLOT	; mapper or not.
 		or	a
 		jr	z,no_mapper		;Skip if not a mapper slot
 ;
+	; di
+	; halt
+
 		pop	bc			;B = slot number
 ;
 		pop	hl
@@ -736,7 +744,7 @@ MAPBIO3:
         jr z,MAPB_DONT_CALL_OLD
 
         ex af,af'   ;D'=0 at return: must call old hook with original registers
-        exx    
+        exx
 		pop	af
 		pop	de
 		ret
@@ -775,7 +783,7 @@ EXB_LOOP:
 	ld	a,(ix)
 	or a	;Zero if empty entry
 	jr	z,EXB_DJNZ
-    and 10001111b    
+    and 10001111b
 	ld	c,a
 	ld	a,(MASTER_SLOT##)
 	cp	c
