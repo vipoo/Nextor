@@ -18,7 +18,8 @@
 ; Entry:  B = boot drive.
 ;	  HL = null terminated command line pointer.
 ;
-TRYBOOT::	ld	b,a
+TRYBOOT::
+		ld	b,a
 		ld	a,(CUR_DRV##)		;Save default drive for
 		push	af			; restoring afterwards.
 		push	bc
@@ -329,7 +330,7 @@ if 1
 		ld	($DOSOFF##),a		;
 		ld	(XFER##),a		;
 endif
-		
+
 		jp	100h			;Start up MSXDOS.SYS
 ;
 msxdos_fail:

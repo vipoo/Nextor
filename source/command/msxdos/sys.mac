@@ -110,6 +110,7 @@ if 0
 SIGNON:	DEFB	'Nextor version '
 	DEFB	VERSION##+'0', '.', RELEASE##/256+'0', RELEASE##+'0'
 	DEFB	CR,LF
+
 	DEFB	'Copyright ('
 	DEFB	CRYEAR##/1000 MOD 10 +'0'
 	DEFB	CRYEAR##/ 100 MOD 10 +'0'
@@ -145,7 +146,8 @@ endif
 ; normal BDOS entry code. If anything is trying to call F37D, this stands more
 ; of a chance of working than anything else that could be done to F37D.
 ;
-STARTUP:LD	HL,P3BDOS	; Character outputs initially go through page 3
+STARTUP:
+	LD	HL,P3BDOS	; Character outputs initially go through page 3
 	LD	(OVEC),HL	;   entry point.
 ;
 if 0 ;v2.31
@@ -1003,7 +1005,7 @@ zstr_slow:
 ; block size is greater than 63 bytes or not respectively.
 ;
 ;
-@ALLOC:	
+@ALLOC:
 	call	FUNC_WITH_IXIY
 	LD	A,C		; Return sectors/cluster in A, not C.
 	LD	C,(IX+2)	; Return sector size.

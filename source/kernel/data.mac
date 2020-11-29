@@ -50,12 +50,12 @@ ram_ad	defl	DATABASE
 ;	------------------------
 ;
 	var	PRTBUF,6,F1C9	;MSX-DOS1 compatible string output routine
-	
+
 ;   ------------------------
 
 ; These are available in MSX-DOS 1 mode too thanks to the modification
 ; of the STROUT routine, see dos1ker.mac
-    
+
     spare   1
     ;NOTE! BK4_ADD is manually defined in bank5/dos.h, and must be updated if it changes
     var2 BK4_ADD,F1D0   ;Address of routine to be called in bank 4
@@ -291,11 +291,11 @@ ram_ad	defl	DATABASE
 ;	------------------------
 ;
 	var1	KEYVLD, F336	;\
-	var1	KEYCHR, F337	; > 
+	var1	KEYCHR, F337	; >
 	var1	TIMFLG, F338	;/
 ;
 	spare	2		;  was   F_SPSAVE,   F339
-	
+
 	var2	PATHNAM		;  was   CURDATE,    F33B
 	var2	RECSIZE		;  used by Disk BASIC
 ;
@@ -396,7 +396,7 @@ ram_ad	defl	DATABASE
 ;   The following are entry points to the kernel  code  segment.   "KINIT"  is
 ; only  used  for  initialization,  "KBDOS"  is  used  to  access all the BDOS
 ; functions, "KTIMI" is for timer interrupts and the  remainder  are  for  the
-; BIOS routines.  
+; BIOS routines.
 ;
 	const	KINIT,  0000h		;Kernel initialization routine
 	const	KBDOS,  0005h		;Kernel BDOS function dispatcher
@@ -494,7 +494,7 @@ ram_ad	defl	4100h
 	var3	F_CDRVR
 	var3	F_MAPDRV
 	var3	F_Z80MODE
-	
+
 	var3	UNMAPALL
 
 	var3	DOSV1
@@ -535,7 +535,7 @@ ram_ad	defl	4100h
 ;
 ;	Routines on ROM page 0 and on disk drivers
 
-	const	DV_BANK,7	;Bank number of disk driver
+	const	DV_BANK, DRV_BANK_NO	;Bank number of disk driver
 
 ram_ad	defl	403Ch
 
@@ -565,7 +565,7 @@ ram_ad	defl	4100h
 	var3	DV_D4
 	var3    DV_CONFIG
 	spare	12
-	
+
 	;Routines for drive-based and device-based drivers
 
 	var0	DV_DSKIO

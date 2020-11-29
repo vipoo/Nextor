@@ -3,6 +3,7 @@
 
 ;===== start add DOS2.50 (build type)
 ;
+	INCLUDE	VERSION.INC
 	INCLUDE	CONDASM.INC
 	INCLUDE CONST.INC
 ;
@@ -165,8 +166,8 @@ endif
 _$DOSVER::
 DOSV0::
 	defb	"Nextor kernel version "
-	defb	NXTVER##+"0", ".", NXTV_HI##+"0" 
-	
+	defb	NXTVER##+"0", ".", NXTV_HI##+"0"
+
 	if 1
 	defb ".", NXTV_LO##+"0"
 	endif
@@ -288,7 +289,7 @@ DISABLE_TBL:
 
 	db	3, 00000010b	;0-3: P
 	db	3, 00001000b	;1-3: R
-	db	1, 10000000b	;2-3: F 
+	db	1, 10000000b	;2-3: F
 	db	3, 10000000b	;3-3: V
 
 	ALIGN   41E8h
@@ -343,7 +344,7 @@ KEYS_INV_1: db 20h  ;Invert CTRL by default (so internal FDDs get only one drive
 ;
 ; H holds also the status of CAPS, GRAPH, CTRL and SHIFT on bits 7,6,5,4
 ; respectively.
-; 
+;
 ; (routine placed here to use a big hole in ROM - may need to be moved
 ;  if the routine grows)
 
@@ -379,12 +380,20 @@ SCANKEYS::
     call SK_GET_ROWS
 
     pop af
+
+ifndef EX_RUSSIAN
     or a
     jr nz,SCANK_RUSSIAN
+endif
+
     call SK_INTERNATIONAL
+
+ifndef EX_RUSSIAN
     jr SCANK_DONE
 SCANK_RUSSIAN:
     call SK_RUSSIAN
+endif
+
 SCANK_DONE:
 
     ld b,(ix+SK_B)
@@ -405,7 +414,7 @@ SCANK_DONE:
 ;1: ......98
 ;2: BA......
 ;3: JIHGFEDC
-;4: RQPONMLK 
+;4: RQPONMLK
 ;5: ZYXWVUTS
 ;6: .... CAPS GRAPH CTRL SHIFT
 ;Numeric:
@@ -479,7 +488,7 @@ SK_INTERNATIONAL:
 
     ld (ix+SK_L),a
 
-    ;* W-Z 
+    ;* W-Z
 
     ld a,c
     and 00001111b       ;....ZYXW
@@ -525,19 +534,19 @@ SK_COMMON:
 
     ld a,c
     and 00000011b       ;......98 from numeric keyboard
-    or (ix+SK_E)        
-    ld (ix+SK_E),a      ;FEDCBA98, with 98 from either the regular or the numeric keyboard 
+    or (ix+SK_E)
+    ld (ix+SK_E),a      ;FEDCBA98, with 98 from either the regular or the numeric keyboard
 
     ret
 
-
+ifndef EX_RUSSIAN
     ;* Russian keyboard layout version
 
 ;0: 654321.9
 ;1: V.H..087
 ;2: IF...B..
 ;3: O.RPAUWS
-;4: KJZ.TXDL 
+;4: KJZ.TXDL
 ;5: QN.CMGEY
 ;6: .... CAPS GRAPH CTRL SHIFT
 ;Numeric:
@@ -545,40 +554,40 @@ SK_COMMON:
 ;10: ...98765
 
 SK_RUSSIAN:
-    ld a,(ix+SK_ROW_0)
-    ld c,a
-    ld b,(ix+SK_ROW_1)
-    ld e,0
+	ld	a, (ix+SK_ROW_0)
+	ld	c, a
+	ld	b, (ix+SK_ROW_1)
+	ld	e, 0
 
-    and 11111100b   ;654321..
+	and	11111100b   		; 654321..
 
-    srl b   ;Cy = 7
-    rra     ;7654321.
-    srl a   ;.7654321
+	srl	b			; Cy = 7
+	rra     			; 7654321.
+	srl	a			; .7654321
 
-    srl c   ;Cy = 9
-    rl e    ;E = .......9
+	srl	c			; Cy = 9
+	rl	e			; E = .......9
 
-    srl b   ;Cy = 8
-    rl e    ;E = ......98
+	srl	b			; Cy = 8
+	rl	e			; E = ......98
 
-    srl b   ;Cy = 0
-    rl a    ;76543210
+	srl	b			; Cy = 0
+	rl	a			; 76543210
 
-    ld (ix+SK_B),a
-    ld (ix+SK_E),e
+	ld	(ix+SK_B), a
+	ld	(ix+SK_E), e
 
-    ;I'm sorry but that's it, only 9 disk image files supported in Russian keyboards.
-    ;Pull request implementing the (hellish) conversion of the rest of the keys will be welcome.
+	;I'm sorry but that's it, only 9 disk image files supported in Russian keyboards.
+	;Pull request implementing the (hellish) conversion of the rest of the keys will be welcome.
 
-    xor a
-    ld (ix+SK_D),a
-    ld (ix+SK_L),a
-    ld (ix+SK_H),a
+	xor	a
+	ld	(ix+SK_D), a
+	ld	(ix+SK_L), a
+	ld	(ix+SK_H), a
 
-    ld h,a
-    jp SK_COMMON
-
+	ld	h, a
+	jp	SK_COMMON
+endif
 
     ;Input:  HL = First work area address, B=Rows count, C=First row
     ;Output: HL = Last work area address used + 1
@@ -614,34 +623,35 @@ CLIKSW	EQU	0F3DBH
 KILBUF	EQU	0156H
 CHGET	EQU     09FH
 
+ifndef EX_RUSSIAN
     ;Returns A=1 if we have a Russian keyboard, A=0 otherwise
 CHECK_IS_RUSSIAN: ; in case of ZF
 	DI
-	CALL KILBUF
-	LD HL,(CAPST)
-	LD A,(CLIKSW)
-	PUSH AF
-	PUSH HL
-	XOR A
-	LD (KANAST),A   ; KANA OFF
-	LD (CLIKSW),A   ; Shut up!
-	DEC A
-	LD (CAPST),A    ; CAPS ON
-	LD (NEWKEY+6),A ; No SHIFT, CTRL etc.
-	LD A,64
-	LD B,7
-	CALL 0D89H
-	POP HL
-	POP AF
-	LD (CLIKSW),A
-	LD (CAPST),HL
-	CALL CHGET
-	CP "J"
-    ld a,1
-	RET z
-    dec a
-    ret
-
+	CALL	KILBUF
+	LD	HL, (CAPST)
+	LD	A, (CLIKSW)
+	PUSH	AF
+	PUSH	HL
+	XOR	A
+	LD	(KANAST), A   ; KANA OFF
+	LD	(CLIKSW), A   ; Shut up!
+	DEC	A
+	LD	(CAPST), A    ; CAPS ON
+	LD	(NEWKEY+6), A ; No SHIFT, CTRL etc.
+	LD	A, 64
+	LD	B, 7
+	CALL	0D89H
+	POP	HL
+	POP	AF
+	LD	(CLIKSW), A
+	LD	(CAPST), HL
+	CALL	CHGET
+	CP	"J"
+	ld	a, 1
+	RET	z
+	dec	a
+	ret
+endif
 
     ;Read key status from RAM.
     ;Out: Z if status read ok, NZ if not
@@ -808,7 +818,7 @@ INIT:
 	ld	hl,INIT2
 	push	hl
 	xor	a
-	
+
 	;Bank switching code must go here
 
 BSC::
@@ -816,13 +826,13 @@ BSC::
 	ret
 	ds	48-4
 INIT2:
-
 	call	CHK_DUP	;Will just POP and RET if slot already processed
 
     call DO_KEYS_INIT
 
-	call	DISABLE_KEY
-	ret	nz
+	; call	DISABLE_KEY
+	; ret	nz
+
 ;
 if 0 ;; If 0, will boot on MSX1 machine (with calendar clock problem).
 	ld	a,(VERSION)
@@ -854,11 +864,11 @@ else
 endif
 ;
 ;	I am the first disk cartridge.
-;
+
 	call	INITVARS
 
-    ld a,CLS
-    call CHPUT
+;     ld a,CLS
+;     call CHPUT
 ;
 ;	I can be the master.  Check if disk system can start up.
 ;
@@ -873,8 +883,8 @@ endif
 	COMPAR			; kill the disk system.
 	jr	nz,KILL_DISK	;
 ;
-    ld a,(BOOTKEYS##+4)
-    and 00010000b
+    	ld a,(BOOTKEYS##+4)
+    	and 00010000b
 	di
 	rrca
 	jr	z,NOTKILL	;If SHIFT key is pressed, kill the disk system
@@ -914,7 +924,7 @@ endif
 	ret
 ;
 NOTKILL:
-	call	SETF7	;MEM_CHK		;If enough memory was not available
+	call	SETF7		;If enough memory was not available
 	jr	nc,MEM_CHK_OK1
 	;ret	c		; give DOS1 a chance to be the master.
 	ld	a,1
@@ -960,13 +970,13 @@ INIHOOK:
 	inc	hl
 	ld	(hl),0C9h	;instruction code for "RET"
 ;
-    ld a,(BOOTKEYS##+4) ;Check CTRL key
-    and 00100000b
-    rrca
-    rrca
-    rrca
-    rrca
-    xor 2
+	ld a,(BOOTKEYS##+4) ;Check CTRL key
+	and 00100000b
+	rrca
+	rrca
+	rrca
+	rrca
+	xor 2
 	ld	(TARGET##),a
 ;
 	ld	a,BELL		;tell user scanning is over
@@ -1102,7 +1112,7 @@ BOTTOM_OK:
 	pop af
 	pop	hl
 	jr	z,NO_DEVBASED
-	
+
 	ld	b,255
 
 OKDEVBASED:
@@ -1221,7 +1231,6 @@ NO_DRV2:
 	ret			; is a master.
 
 
-
 ;
 ; Now that page-2 and page-3 slot might  have  been  changed  by  mapper
 ; setup  routine,  dig  into  the dungeon of the stack to patch out "old
@@ -1236,6 +1245,7 @@ SPDEPTH	equ	2		;Stack depth in bytes.
 MEM_CHK:
 	call	GSLOT2		;Get current page-2 slot for MAP_SCAN.
 	call	MAP_SCAN##
+iff DISABLE_MEM_SCAN
 	ret	c
 ;
 	ld	hl,SPDEPTH+3
@@ -1264,6 +1274,7 @@ not_my_slot:
 	in	a,(PPI.AR)	;Get current primary slot.
 	rrd			;Replace the page-2 and page-3 slot
 	ld	(hl),a		; with the new one.
+endif
 	ret
 
 	subttl	Clean up procedure
@@ -1442,6 +1453,7 @@ NO_DPB:
 	inc	c		;bump DRVNUM
 	djnz	ALCFAT
 ;
+
 	call	GSLOT2		;Get current page-2 slot
 	ld	b,a
 
@@ -1461,7 +1473,7 @@ NODOSINIT:
 OKDOSINIT:
 
 ;
-if 1 ;These buffers should be permanent.  [HF]
+; if 1 ;These buffers should be permanent.  [HF]
 
 	ld	hl,LEN_1##+LEN_2##+LEN_3##+64
 	call	PALLOC
@@ -1476,7 +1488,7 @@ if 1 ;These buffers should be permanent.  [HF]
 	add	hl,de
 	ld	(ERR_BUF##),hl
 ;
-endif
+; endif
 	ld	hl,(HIMEM##)	;save HIMEM
 	ld	(HIMSAV##),hl	;
 ;
@@ -1496,22 +1508,22 @@ endif
 	;(CALL KANJI hanging the computer)
 	;since the Kanji ROM timer interrupt routine assumes that the
 	;previous hook is either a RET or a RST 30h (not a CALL!)
-if 0
-;===== start mod DOS2.50 (support MegaSCSI)
-	ld	de,_TIME_IRQ##	; to our timer interrupt
-	ld	(hl),0;NOP	; routine in this ROM page.
-	inc	hl
-	ld	(hl),0CDh;CALL
-	inc	hl
-	ld	(hl),e
-	inc	hl
-	ld	(hl),d
-	inc	hl
-	ld	(hl),0C9h;RET
-else
+; if 0
+; ;===== start mod DOS2.50 (support MegaSCSI)
+; 	ld	de,_TIME_IRQ##	; to our timer interrupt
+; 	ld	(hl),0;NOP	; routine in this ROM page.
+; 	inc	hl
+; 	ld	(hl),0CDh;CALL
+; 	inc	hl
+; 	ld	(hl),e
+; 	inc	hl
+; 	ld	(hl),d
+; 	inc	hl
+; 	ld	(hl),0C9h;RET
+; else
 	ld	de,@TIME_IRQ##
 	call	MYHOOK
-endif
+; endif
 
 ;;	ld	de,@TIME_IRQ##
 ;;	call	MYHOOK
@@ -1550,9 +1562,10 @@ endif
 ;
 	call	PBAS_HOOK
 ;
-if 1
+; if 1
 	ld	sp,BOOTAD+512	;set stack pointer to a safe area
-endif
+; endif
+
 if (HYBRID OR STURBO)
 	ld	a,(PROCNM+7)
 	cp	1
@@ -1570,21 +1583,23 @@ WATLOP	equ	7D0Dh
 	ld	ix,WATLOP+10	;hook set, get back to where we once
 	jr	nz,GO_BASIC	;belonged
 ;
+	pop	af
+
 ;	See if entered from TEXT entry of ROM cartridge
 ;
-if 0
-WORKOK	equ	7E09h
-;
-	ld	ix,WORKOK+11	;where we once belonged
-	ld	hl,SLTATR##
-	ld	b,64
-SRCBAS:
-	ld	a,(hl)
-	add	a,a
-	jp	c,CALBAS	;BASIC cartridge found
-	inc	hl
-	djnz	SRCBAS
-else
+; if 0
+; WORKOK	equ	7E09h
+; ;
+; 	ld	ix,WORKOK+11	;where we once belonged
+; 	ld	hl,SLTATR##
+; 	ld	b,64
+; SRCBAS:
+; 	ld	a,(hl)
+; 	add	a,a
+; 	jp	c,CALBAS	;BASIC cartridge found
+; 	inc	hl
+; 	djnz	SRCBAS
+; else
 SRCBAS	equ	7DEEh
 BASROM	equ	0FBB1h
 ;
@@ -1592,7 +1607,7 @@ BASROM	equ	0FBB1h
 	or	a
 	ld	ix,SRCBAS-5	;Because BASIC cartridge is no more enabled.
 	jr	nz,GO_BASIC
-endif
+; endif
 	call	CANCEL_XFER
 ;===== start mod DOS2.50 (build type)
 if BUILTIN
@@ -2467,13 +2482,15 @@ GSLT_SLTTBL:
     ;Scan and store boot keys and check if keyboard is Russian if that hasn't been done yet
 
 DO_KEYS_INIT:
+ifndef EX_RUSSIAN
     call CHECK_IS_RUSSIAN
     ld (I_AM_RUSSIAN##),a
+endif
 
     call SCANKEYS_RAM
     jr z,DO_KEYS_INIT2
     call SCANKEYS
-    
+
     ld a,(KEYS_INV_0)
     and 00111110b
     xor b
@@ -2483,7 +2500,7 @@ DO_KEYS_INIT:
     and 00110000b
     xor h
     ld h,a
-  
+
 DO_KEYS_INIT2:
     ld a,b
     ld (BOOTKEYS##),a
@@ -2665,7 +2682,7 @@ CRLF:	ld	e,CR
 ;   About 450 bytes hole here.
 ;
 if HYBRID
-; 
+;
 CHECK_1KEY:
     ld a,(BOOTKEYS##) ;If "1" or "2" key is pressed at THIS (oops) moment, force MSX-DOS1
     and 00000110b
@@ -2949,7 +2966,7 @@ olddos_9:
 	;ld	a,0C9h	;Code for RET
 	;ld	(FCALSAV##),a
 ;FCALSAV_OK:
-	
+
 	ld	a,3
 	ld	(MAIN_BANK##),a
 
@@ -3273,7 +3290,7 @@ clstat_noexp:
 	ld	(hl),0	;Clear page 2 bits
 	inc	hl
 	ld	(hl),0	;Clear page 3 bits
-	
+
 	ld	hl,H.RUNC
 	ret
 
@@ -3313,7 +3330,7 @@ CHK_CODE_START:
 				;to RAM because we don't know if the bank
 				;has a valid driver (and hence the
 				;CHGBNK code itself)
-	
+
 	;Search the disk driver signature
 
 	ld	hl,DRV_STRING
