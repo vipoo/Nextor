@@ -1003,7 +1003,7 @@ zstr_slow:
 ; block size is greater than 63 bytes or not respectively.
 ;
 ;
-@ALLOC:	
+@ALLOC:
 	call	FUNC_WITH_IXIY
 	LD	A,C		; Return sectors/cluster in A, not C.
 	LD	C,(IX+2)	; Return sector size.

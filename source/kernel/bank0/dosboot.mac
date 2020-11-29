@@ -329,7 +329,7 @@ if 1
 		ld	($DOSOFF##),a		;
 		ld	(XFER##),a		;
 endif
-		
+
 		jp	100h			;Start up MSXDOS.SYS
 ;
 msxdos_fail:

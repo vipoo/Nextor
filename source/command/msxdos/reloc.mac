@@ -3,6 +3,7 @@
 	SUBTTL	Booting Up Relocation
 ;
 	.Z80
+	INCLUDE	CONDASM.INC
 ;
 ;
 LF	EQU	0AH

@@ -51,3 +51,6 @@ source/tools/data.mac
 NEXTOR.SYS
 NEXTORK.SYS
 nextor_base.dat
+
+linuxtools/prereq
+linuxtools/mknexrom

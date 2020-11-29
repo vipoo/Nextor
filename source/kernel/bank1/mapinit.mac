@@ -742,7 +742,7 @@ MAPBIO3:
         jr z,MAPB_DONT_CALL_OLD
 
         ex af,af'   ;D'=0 at return: must call old hook with original registers
-        exx    
+        exx
 		pop	af
 		pop	de
 		ret
@@ -781,7 +781,7 @@ EXB_LOOP:
 	ld	a,(ix)
 	or a	;Zero if empty entry
 	jr	z,EXB_DJNZ
-    and 10001111b    
+    and 10001111b
 	ld	c,a
 	ld	a,(MASTER_SLOT##)
 	cp	c

@@ -3,6 +3,7 @@
 
 ;===== start add DOS2.50 (build type)
 ;
+	INCLUDE	VERSION.INC
 	INCLUDE	CONDASM.INC
 	INCLUDE CONST.INC
 ;
@@ -379,12 +380,16 @@ SCANKEYS::
     call SK_GET_ROWS
 
     pop af
+ifndef EX_RUSSIAN
     or a
     jr nz,SCANK_RUSSIAN
+endif
     call SK_INTERNATIONAL
+ifndef EX_RUSSIAN
     jr SCANK_DONE
 SCANK_RUSSIAN:
     call SK_RUSSIAN
+endif
 SCANK_DONE:
 
     ld b,(ix+SK_B)
@@ -531,6 +536,7 @@ SK_COMMON:
     ret
 
 
+ifndef EX_RUSSIAN
     ;* Russian keyboard layout version
 
 ;0: 654321.9
@@ -579,6 +585,7 @@ SK_RUSSIAN:
     ld h,a
     jp SK_COMMON
 
+endif
 
     ;Input:  HL = First work area address, B=Rows count, C=First row
     ;Output: HL = Last work area address used + 1
@@ -614,6 +621,7 @@ CLIKSW	EQU	0F3DBH
 KILBUF	EQU	0156H
 CHGET	EQU     09FH
 
+ifndef EX_RUSSIAN
     ;Returns A=1 if we have a Russian keyboard, A=0 otherwise
 CHECK_IS_RUSSIAN: ; in case of ZF
 	DI
@@ -642,6 +650,7 @@ CHECK_IS_RUSSIAN: ; in case of ZF
     dec a
     ret
 
+endif
 
     ;Read key status from RAM.
     ;Out: Z if status read ok, NZ if not
@@ -856,9 +865,10 @@ endif
 ;	I am the first disk cartridge.
 ;
 	call	INITVARS
-
+; iif RC2014
     ld a,CLS
     call CHPUT
+; endif
 ;
 ;	I can be the master.  Check if disk system can start up.
 ;
@@ -1236,6 +1246,7 @@ SPDEPTH	equ	2		;Stack depth in bytes.
 MEM_CHK:
 	call	GSLOT2		;Get current page-2 slot for MAP_SCAN.
 	call	MAP_SCAN##
+iff DISABLE_MEM_SCAN
 	ret	c
 ;
 	ld	hl,SPDEPTH+3
@@ -1264,6 +1275,7 @@ not_my_slot:
 	in	a,(PPI.AR)	;Get current primary slot.
 	rrd			;Replace the page-2 and page-3 slot
 	ld	(hl),a		; with the new one.
+endif
 	ret
 
 	subttl	Clean up procedure
@@ -2467,8 +2479,10 @@ GSLT_SLTTBL:
     ;Scan and store boot keys and check if keyboard is Russian if that hasn't been done yet
 
 DO_KEYS_INIT:
+ifndef EX_RUSSIAN
     call CHECK_IS_RUSSIAN
     ld (I_AM_RUSSIAN##),a
+endif
 
     call SCANKEYS_RAM
     jr z,DO_KEYS_INIT2
