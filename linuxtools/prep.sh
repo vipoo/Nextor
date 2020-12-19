@@ -34,7 +34,9 @@ sf "kernel/bank5/*.h"
 sf "kernel/bank6/*.mac"
 sf kernel/drivers/SunriseIDE/chgbnk.mac srchgbnk.mac
 sf kernel/drivers/SunriseIDE/driver.mac sunrise.mac
+sf kernel/drivers/embedded/drvembed.mac
 sf kernel/drivers/StandaloneASCII16/chgbnk.mac a6chgbnk.mac
+sf kernel/drivers/yellowmsxforrc2014/ymchgbnk.mac
 sf "common/*"
 sf "command/msxdos/*.mac"
 sf command/command/files.mac cmdfiles.mac

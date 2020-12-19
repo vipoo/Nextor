@@ -45,7 +45,7 @@ export PATH := $(PWD)/../linuxtools/:$(PWD)/../linuxtools/prereq/sdcc-4.0.0/bin/
 
 
 .PHONY: all
-all: sunrise hdddsk
+all: embedded sunrise hdddsk
 	@
 
 PREP := $(shell $(PWD)/../linuxtools/prep.sh > /dev/null; echo "$$?")
