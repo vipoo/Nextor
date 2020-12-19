@@ -9,6 +9,7 @@ BUILTIN			equ	-1	;built-in system
 EX_RUSSIAN		equ	-1	; Exclude support for Russian keyboard
 DEBUG			equ	0	; SET to -1 to enable debug/trace
 DISABLE_MEM_SCAN	equ	0	; DISABLE MEM BANK SCANNING - AVOID BRITTLE STACK WALKING CODE (see MEM_CHK)
+RC2014			equ	0	; SWITCH TO CONTROL FEATURES SPECIFIC TO RC2014
 ;
 ;-----------------------------------------------------------------------------
 ;

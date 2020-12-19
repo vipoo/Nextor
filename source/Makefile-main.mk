@@ -303,6 +303,111 @@ sunrise: $(BLDDIR)nextor-$(VERSION).sunriseide.rom
 	@
 
 # --------------------------------------------------------------------------------------
+# DRIVER: embedded using ASCII16 Banking
+
+
+export BANK_SWITCH_CODE_ADDR := 32720 # 7FD0h
+
+$(BLDDIR)drvembed.hex $(BLDDIR)drvembed.sym: drvembed.rel
+	@cd $(BLDDIR)
+	l80.sh drvembed.hex /P:4100,DRVEMBED,DRVEMBED/N/X/Y/E
+	cleancpmfile.sh drvembed.sym
+	cat drvembed.sym
+	SECEND=$$(getsymb.sh drvembed.sym SECEND)
+	if (($${SECEND} > $${BANK_SWITCH_CODE_ADDR})); then
+		printf "\e[31mDriver code overflow - driver bank has exceeded 16k\r\n\e[0m"
+		exit 1
+	fi
+
+$(BLDDIR)drvembed.bin: drvembed.hex
+	@cd $(BLDDIR)
+	rm -f drvembed.bin
+	hex2bin -s 4000 drvembed.hex
+	filesize=$$(stat -c%s "drvembed.bin")
+	if ((filesize > 16484 )); then
+		echo -e "\r\nError: drvembed exceeded size of 16k"
+		exit 1
+	fi
+
+$(BLDDIR)driver-with-sectors.bin: $(BLDDIR)drvembed.bin fdd.dsk
+	@cd $(BLDDIR)
+	SECSTRT=$$(getsymb.sh drvembed.sym SECSTR)
+	DATSIZ=$$(getsymb.sh drvembed.sym DATSIZ)
+	B0=$$((SECSTRT-16384))
+	B1=$$(($$B0 + 16384))
+	B2=$$(($$B1 + 16384))
+	B3=$$(($$B2 + 16384))
+	B4=$$(($$B3 + 16384))
+	B5=$$(($$B4 + 16384))
+	B6=$$(($$B5 + 16384))
+	B7=$$(($$B6 + 16384))
+	dd if=/dev/zero of=driver-with-sectors.bin bs=16k count=8 seek=0													# 8 driver banks - Add code for each of the banks containing sector data
+	dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=0
+	dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=2
+	dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=4
+	dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=6
+	dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=8
+	dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=10
+	dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=12
+	dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=14
+	dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$B0               # Distribute the fdd.dsk image across the banks
+	dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$B1 skip=$$DATSIZ
+	dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$B2 skip=$$(($$DATSIZ*2))
+	dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$B3 skip=$$(($$DATSIZ*3))
+	dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$B4 skip=$$(($$DATSIZ*4))
+	dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$B5 skip=$$(($$DATSIZ*5))
+	dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$B6 skip=$$(($$DATSIZ*6))
+	dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$B7 skip=$$(($$DATSIZ*7))
+
+# $(BLDDIR)a6chgbnk.hex: a6chgbnk.rel
+# 	@cd $(BLDDIR)
+# 	l80.sh a6chgbnk.hex /P:7fd0,A6CHGBNK,A6CHGBNK/N/X/Y/E
+
+# $(BLDDIR)a6chgbnk.bin: a6chgbnk.hex
+# 	@cd $(BLDDIR)
+# 	rm -f a6chgbnk.bin
+# 	hex2bin -s 7FD0 a6chgbnk.hex
+
+$(BLDDIR)ymchgbnk.hex: ymchgbnk.rel
+	@cd $(BLDDIR)
+	l80.sh ymchgbnk.hex /P:7fd0,YMCHGBNK,YMCHGBNK/N/X/Y/E
+
+$(BLDDIR)ymchgbnk.bin: ymchgbnk.hex
+	@cd $(BLDDIR)
+	rm -f ymchgbnk.bin
+	hex2bin -s 7FD0 ymchgbnk.hex
+
+$(BLDDIR)nextor-$(VERSION).embedded.rom: dos250ba.dat driver-with-sectors.bin ymchgbnk.bin mknexrom
+	@cd $(BLDDIR)
+	mknexrom dos250ba.dat nextor-$(VERSION).embedded.rom -d:driver-with-sectors.bin -m:ymchgbnk.bin
+	cp -u nextor-$(VERSION).embedded.rom ../
+
+# --------------------------------------------------------------------------------------
+# FLOPPY DISK IMAGE FOR EMBEDDED DRIVER
+
+$(BLDDIR)fdd.dsk: nextor.sys command2.com fixdisk.com chkdsk.com ../../extras/AUTOEXEC.BAT $(TOOLS_LIST)
+	@cd $(BLDDIR)
+	DATSIZ=$$(getsymb.sh drvembed.sym DATSIZ)
+	sudo umount -df /media/fdddsk > /dev/null 2>&1 || true
+	rm -f fdd.dsk
+	dd if=/dev/zero of=fdd.dsk bs=$$(($$DATSIZ*8)) count=1
+	mkfs.vfat -F 12 -f 1 fdd.dsk
+	sudo mkdir -p /media/fdddsk
+	sudo mount -t vfat fdd.dsk /media/fdddsk
+	sudo cp -v --preserve=timestamps *.com /media/fdddsk
+	sudo cp -v --preserve=timestamps nextor.sys /media/fdddsk
+	sudo cp -v --preserve=timestamps ../../extras/* /media/fdddsk
+	sudo umount -df /media/fdddsk
+	cp -u fdd.dsk ../
+
+## Build a FAT12 floppy disk image containing nextor.sys, command2.com
+fdddsk: $(BLDDIR)fdd.dsk
+
+## Build the embedded rom image (ROM DISK)
+embedded: $(BLDDIR)nextor-$(VERSION).embedded.rom
+	@
+
+# --------------------------------------------------------------------------------------
 # mknexrom
 
 $(BLDDIR)../../linuxtools/mknexrom: ../../wintools/mknexrom.c
