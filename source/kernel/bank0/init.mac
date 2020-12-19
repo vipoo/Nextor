@@ -182,6 +182,7 @@ _$DSKBASIC::
 	defb	 0
 ;
 ;===== start mod DOS2.50 (change Copyright string)
+iff RC2014
 	defb	"Copyright (C) "
 	defb	R_YEAR##/1000 mod 10 + "0"
 	defb	R_YEAR##/ 100 mod 10 + "0"
@@ -202,6 +203,7 @@ if 0
 	defb	R_YEAR##/  10 mod 10 + "0"
 	defb	R_YEAR##      mod 10 + "0"
 	defb	" Keiko Mizuo",0
+endif
 endif
 ;===== end mod DOS2.50
 ;

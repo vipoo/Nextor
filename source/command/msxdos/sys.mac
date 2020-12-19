@@ -111,12 +111,14 @@ SIGNON:	DEFB	'Nextor version '
 	DEFB	VERSION##+'0', '.', RELEASE##/256+'0', RELEASE##+'0'
 	DEFB	CR,LF
 
+iff RC2014
 	DEFB	'Copyright ('
 	DEFB	CRYEAR##/1000 MOD 10 +'0'
 	DEFB	CRYEAR##/ 100 MOD 10 +'0'
 	DEFB	CRYEAR##/  10 MOD 10 +'0'
 	DEFB	CRYEAR##      MOD 10 +'0'
 	DEFB	') Konamiman',CR,LF
+endif
 ;
 	IF	TEST
 	 DEFB	CR,LF
