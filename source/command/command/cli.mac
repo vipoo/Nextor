@@ -1484,7 +1484,9 @@ EXECOM:
 ;       A .COM file has been found, so load & execute it.
 ;
 ;
-if 1
+if 0
+; TODO: Check all bytes of volume id == 0xFFFF - to indicate no id?????
+
 		LD	HL,EXPERT$	; Accept any .COM files
 		CALL	ON?##		;   if "EXPERT" switch is ON.
 		JR	NC,EXPERT
