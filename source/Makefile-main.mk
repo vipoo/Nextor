@@ -385,7 +385,8 @@ $(BLDDIR)nextor-$(VERSION).embedded.rom: dos250ba.dat driver-with-sectors.bin ym
 # --------------------------------------------------------------------------------------
 # FLOPPY DISK IMAGE FOR EMBEDDED DRIVER
 
-$(BLDDIR)fdd.dsk: nextor.sys command2.com fixdisk.com chkdsk.com ../../extras/AUTOEXEC.BAT $(TOOLS_LIST)
+EXTRAS = $(wildcard ../extras/*)
+$(BLDDIR)fdd.dsk: nextor.sys command2.com fixdisk.com chkdsk.com $(EXTRAS) $(TOOLS_LIST)
 	@cd $(BLDDIR)
 	DATSIZ=$$(getsymb.sh drvembed.sym DATSIZ)
 	sudo umount -df /media/fdddsk > /dev/null 2>&1 || true
