@@ -54,3 +54,6 @@ nextor_base.dat
 
 linuxtools/prereq
 linuxtools/mknexrom
+
+extras/*
+!extras/AUTOEXEC.BAT
