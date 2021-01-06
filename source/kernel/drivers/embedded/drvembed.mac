@@ -16,14 +16,9 @@
 
 SECCNT	EQU	30	; NUMBER OF SECTORS STORED IN EACH BANK
 SECSIZ	EQU	512	; NUMBER OF BYTES PER SECTOR
-SECTOT	EQU	8*SECCNT ; MUST BE LESS THAN 255
+SECTOT	EQU	16*SECCNT ; MUST BE LESS THAN 255
 
-if1
-	if SECTOT GT 255
-		.printx "Driver only supports upto 255 Sector image"
-		error
-	endif
-endif
+
 
 ;-----------------------------------------------------------------------------
 ;
@@ -427,10 +422,11 @@ DRV_CONFIG:
 ;          B = Number of sectors actually read (in case of error only)
 
 ST_RD_CNT	EQU	0	; COUNT OF SECTORS TO BE READ
-ST_INDX		EQU	1	; SECTOR TO BE READ (ASSUMES LESS THAN 255 FOR MOMENT)
-ST_DEST_LW	EQU	2	; SECTOR DESTINATION ADDRESS (LOW)
-ST_DEST_HI	EQU	3	; (HIGH)
-ST_RD_CND_RQ	EQU	4	; NUMBER OF SECTORS REQUESTED
+ST_INDX_LW	EQU	1	; SECTOR TO BE READ
+ST_INDX_HI	EQU	2	; SECTOR TO BE READ 	; MUST BE LESS THAN 65536
+ST_DEST_LW	EQU	3	; SECTOR DESTINATION ADDRESS (LOW)
+ST_DEST_HI	EQU	4	; (HIGH)
+ST_RD_CND_RQ	EQU	5	; NUMBER OF SECTORS REQUESTED
 
 DEV_RW:
 	JR	NC, DEV_DO_RD		; WE ONLY DO READS
@@ -445,7 +441,10 @@ DEV_DO_RD:
 	LD	(IX+ST_RD_CNT), B
 	LD	(IX+ST_RD_CND_RQ), B
 	LD	A, (DE)			; RETRIEVE SECTOR NUMBER  (ASSUMING LESS THEN 255 FOR MOMENT)
-	LD	(IX+ST_INDX), A
+	LD	(IX+ST_INDX_LW), A
+	INC	DE
+	LD	A, (DE)
+	LD	(IX+ST_INDX_HI),A
 
 	INC	DE
 	LD	A, (DE)
@@ -459,9 +458,13 @@ SKIP1:
 DEV_RW_LP:
 	CALL	SEC_CPY
 
-	LD	A, (IX+ST_INDX)		; INCREMENT SECTOR IDX
-	INC	A
-	LD	(IX+ST_INDX), A
+	PUSH	HL
+	LD	L, (IX+ST_INDX_lW)		; INCREMENT SECTOR IDX
+	LD	H, (IX+ST_INDX_HI)
+	INC	HL
+	LD	(IX+ST_INDX_LW), L
+	LD	(IX+ST_INDX_HI), H
+	POP	HL
 skip:
 
 	LD	A, (IX+ST_RD_CNT)	; MORE SECTORS TO GO?
@@ -474,21 +477,16 @@ skip:
 	RET
 
 SEC_CPY:
-	LD	C, SECCNT		; FIND THE BANK FOR SECTOR
-	LD	B, DRV_BANK_NO
-	LD	A, (IX+ST_INDX)
+	PUSH	HL			; SAVE DEST ADDR
+	LD	DE, SECCNT		; FIND THE BANK FOR SECTOR
+	LD	C, (IX+ST_INDX_LW)
+	LD	B, (IX+ST_INDX_HI)
+	CALL	DIV16
 
-SECBNK_LP:
-	CP	SECCNT
-	JR	C, SECBNK_FND	   	; LESS THAN, THEN ITS IN BANK B
-
-	INC	B
-	SUB	C
-	JR	SECBNK_LP
-
-SECBNK_FND:
-	LD	C, A
-	LD	A, B
+	LD	A, C			; BANK ID TO A
+	ADD	A, DRV_BANK_NO
+	LD	C, L			; SECTOR OFFSET TO C
+	POP	HL			; RESTORE DEST ADDR
 	;	A <= BANK FOR SECTOR
 	;	C <= SECTOR RELATIVE OFFSET WITHIN BANK (SECTOR MOD SECCNT)
 
@@ -678,7 +676,7 @@ DEV_INFO1:
 	LD	(HL), 2
 	INC	HL
 
-	LD	(HL), 128		; 128 sectors (64k)
+	LD	(HL), 0
 	INC	HL
 	LD	(HL), 0
 	INC	HL
@@ -735,6 +733,30 @@ MY_GWORK:
 	POP	AF
 	RET
 
+
+; DIV16     [BC]=[BC]/[DE], remainder in HL.  Preserves DE, IX, IY.
+
+DIV16:
+	ld	hl,0
+	ld	a,17
+div_loop:
+	rl	c
+	rl	b
+	dec	a
+	ret	z
+;
+	adc	hl,hl
+	jr	nc,fit_16bit
+	or	a		;Remainder exceeds 16 bit
+	sbc	hl,de		;This always generates carry
+	jr	div_loop
+fit_16bit:
+	sbc	hl,de
+	jr	nc,no_rest
+	add	hl,de		;Restore since divisor didn't fit
+no_rest:
+	ccf			;Prepare quotient bit
+	jr	div_loop
 
 ;-----------------------------------------------------------------------------
 ;
