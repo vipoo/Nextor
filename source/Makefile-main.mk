@@ -333,40 +333,15 @@ $(BLDDIR)driver-with-sectors.bin: $(BLDDIR)drvembed.bin fdd.dsk
 	@cd $(BLDDIR)
 	SECSTRT=$$(getsymb.sh drvembed.sym SECSTR)
 	DATSIZ=$$(getsymb.sh drvembed.sym DATSIZ)
-	B0=$$((SECSTRT-16384))
-	B1=$$(($$B0 + 16384))
-	B2=$$(($$B1 + 16384))
-	B3=$$(($$B2 + 16384))
-	B4=$$(($$B3 + 16384))
-	B5=$$(($$B4 + 16384))
-	B6=$$(($$B5 + 16384))
-	B7=$$(($$B6 + 16384))
-	dd if=/dev/zero of=driver-with-sectors.bin bs=16k count=8 seek=0													# 8 driver banks - Add code for each of the banks containing sector data
-	dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=0
-	dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=2
-	dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=4
-	dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=6
-	dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=8
-	dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=10
-	dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=12
-	dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=14
-	dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$B0               # Distribute the fdd.dsk image across the banks
-	dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$B1 skip=$$DATSIZ
-	dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$B2 skip=$$(($$DATSIZ*2))
-	dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$B3 skip=$$(($$DATSIZ*3))
-	dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$B4 skip=$$(($$DATSIZ*4))
-	dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$B5 skip=$$(($$DATSIZ*5))
-	dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$B6 skip=$$(($$DATSIZ*6))
-	dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$B7 skip=$$(($$DATSIZ*7))
-
-# $(BLDDIR)a6chgbnk.hex: a6chgbnk.rel
-# 	@cd $(BLDDIR)
-# 	l80.sh a6chgbnk.hex /P:7fd0,A6CHGBNK,A6CHGBNK/N/X/Y/E
-
-# $(BLDDIR)a6chgbnk.bin: a6chgbnk.hex
-# 	@cd $(BLDDIR)
-# 	rm -f a6chgbnk.bin
-# 	hex2bin -s 7FD0 a6chgbnk.hex
+	dd if=/dev/zero of=driver-with-sectors.bin bs=16k count=16 seek=0
+	BNK_START_ADDR=$$((SECSTRT-16384))
+	for i in {0..15}
+	do
+		BNK_ADDR=$$(($$BNK_START_ADDR + (16384*$$i)))
+		SKIP=$$(($$DATSIZ*$$i))
+		dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=$$((2*$$i))
+		dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$BNK_ADDR skip=$$SKIP
+	done
 
 $(BLDDIR)ymchgbnk.hex: ymchgbnk.rel
 	@cd $(BLDDIR)
@@ -391,7 +366,7 @@ $(BLDDIR)fdd.dsk: nextor.sys command2.com fixdisk.com chkdsk.com $(EXTRAS) $(TOO
 	DATSIZ=$$(getsymb.sh drvembed.sym DATSIZ)
 	sudo umount -df /media/fdddsk > /dev/null 2>&1 || true
 	rm -f fdd.dsk
-	dd if=/dev/zero of=fdd.dsk bs=$$(($$DATSIZ*8)) count=1
+	dd if=/dev/zero of=fdd.dsk bs=$$(($$DATSIZ*16)) count=1
 	mkfs.vfat -F 12 -f 1 fdd.dsk
 	sudo mkdir -p /media/fdddsk
 	sudo mount -t vfat fdd.dsk /media/fdddsk
