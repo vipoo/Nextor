@@ -762,7 +762,7 @@ no_rest:
 ;
 ; End of the driver code
 
-INFO_S:		db	"MSX Disk Driver for RC2014", 13, 10, 0
+INFO_S:		db	"MSX Embedded Disk Driver for RC2014", 13, 10, 0
 
 DUM_INFO:	DB	"Embedded Rom Driver", 0
 DUM_INFO_LN	EQU	9

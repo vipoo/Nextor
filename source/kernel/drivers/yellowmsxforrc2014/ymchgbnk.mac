@@ -26,7 +26,6 @@ BNKID	equ	40FFh		;Where Bank ID is stored
 
 CHGBNK::
 
-	add	a, 8
 	ld	(BNKREG),a
 
 	ret
