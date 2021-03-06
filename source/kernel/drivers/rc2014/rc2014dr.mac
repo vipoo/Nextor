@@ -1,4 +1,4 @@
-    ; Embedded ROM DISK driver for Nextor 2.0
+    ; RC2014 ROM DISK driver for Nextor 2.0
     ; By Konamiman, 8/2018
     ;
     ; Provides a read only disk image
@@ -192,7 +192,7 @@ SING_DBL  equ     7820h ;"1-Single side / 2-Double side"
 ;
 
 DRV_NAME:
-	db	"Embedded ROM DISK Driver"
+	db	"RC2014 ROM DISK Driver"
 	ds	32-($-DRV_NAME)," "
 
 
@@ -275,7 +275,8 @@ DRV_TIMI:
 DRV_INIT:
 	or	a
 	ld	hl,0
-	ld	a,2
+	; ld	a,2
+	ld	a, 0
 	ret	z			;Note that Cy is 0 (no interrupt hooking needed)
 
 	ld	de,INFO_S
@@ -391,7 +392,24 @@ DRV_CONFIG:
 DRV_CONFIG1:
 	CP	2
 	JR	NZ, DRV_CONFIG2
+
+	LD	A, C
+	CP	0
+	JR	Z, DRV_CFG_A
+	CP	1
+	JR	Z, DRV_CFG_B
+
+	LD	A, 1
+	RET
+
+DRV_CFG_A:
 	LD	B, 1
+	LD	C, 1
+	XOR	A
+	RET
+
+DRV_CFG_B:
+	LD	B, 2
 	LD	C, 1
 	XOR	A
 	RET
@@ -429,109 +447,28 @@ DRV_CONFIG2:
 ;              .SEEK: Seek error.
 ;          B = Number of sectors actually read (in case of error only)
 
-ST_RD_CNT	EQU	0	; COUNT OF SECTORS TO BE READ
-ST_INDX_LW	EQU	1	; SECTOR TO BE READ
-ST_INDX_HI	EQU	2	; SECTOR TO BE READ 	; MUST BE LESS THAN 65536
-ST_DEST_LW	EQU	3	; SECTOR DESTINATION ADDRESS (LOW)
-ST_DEST_HI	EQU	4	; (HIGH)
-ST_RD_CND_RQ	EQU	5	; NUMBER OF SECTORS REQUESTED
-
 DEV_RW:
-	JR	NC, DEV_DO_RD		; WE ONLY DO READS
+	JR	NC, DEV_READ		; ARE WE READING?
 
-	LD	A, .WPROT
+	CP	1
+	JP	Z, DEV_WRT_ROM
+
+	CP	2
+	JP	Z, DEV_WRT_CF
+
+	JR	DEV_RW_ERR
+
+DEV_READ:
+	CP	1
+	JP	Z, DEV_READ_ROM
+
+	CP	2
+	JP	Z, DEV_READ_CF
+
+DEV_RW_ERR:
+	LD	A, .IDEVL
 	LD	B, 0
 	RET
-
-DEV_DO_RD:
-	CALL	MY_GWORK
-
-	LD	(IX+ST_RD_CNT), B
-	LD	(IX+ST_RD_CND_RQ), B
-	LD	A, (DE)			; RETRIEVE SECTOR NUMBER  (ASSUMING LESS THEN 255 FOR MOMENT)
-	LD	(IX+ST_INDX_LW), A
-	INC	DE
-	LD	A, (DE)
-	LD	(IX+ST_INDX_HI),A
-
-	INC	DE
-	LD	A, (DE)
-	OR	A
-	JR	Z, SKIP1
-
-SKIP1:
-	LD	(IX+ST_DEST_LW), L
-	LD	(IX+ST_DEST_HI), H
-
-DEV_RW_LP:
-	CALL	SEC_CPY
-
-	PUSH	HL
-	LD	L, (IX+ST_INDX_lW)		; INCREMENT SECTOR IDX
-	LD	H, (IX+ST_INDX_HI)
-	INC	HL
-	LD	(IX+ST_INDX_LW), L
-	LD	(IX+ST_INDX_HI), H
-	POP	HL
-skip:
-
-	LD	A, (IX+ST_RD_CNT)	; MORE SECTORS TO GO?
-	DEC	A
-	LD	(IX+ST_RD_CNT), A
-	JR	NZ, DEV_RW_LP
-
-	LD	B, (IX+ST_RD_CND_RQ)	; LOAD SECTORED COPIED COUNT
-	XOR	A			; RETURN SUCCESS
-	RET
-
-SEC_CPY:
-	PUSH	HL			; SAVE DEST ADDR
-	LD	DE, SECCNT		; FIND THE BANK FOR SECTOR
-	LD	C, (IX+ST_INDX_LW)
-	LD	B, (IX+ST_INDX_HI)
-	CALL	DIV16
-
-	LD	A, C			; BANK ID TO A
-	ADD	A, DRV_BANK_NO
-	LD	C, L			; SECTOR OFFSET TO C
-	POP	HL			; RESTORE DEST ADDR
-	;	A <= BANK FOR SECTOR
-	;	C <= SECTOR RELATIVE OFFSET WITHIN BANK (SECTOR MOD SECCNT)
-
-	LD	IX, SEC_RAW_CPY
-	JP	CALBNK			; CONTINUE COPY IN OTHER BANK
-
-SEC_RAW_CPY:
-	; C IS THE RELATIVE OFFSET WITHIN LOCAL SECTORS
-
-	CALL	MY_GWORK
-
-	CALL	SECTOR_ADDR_IN_BANK
-	CALL	COPY_SECTOR_TO_USR
-	RET
-
-SECTOR_ADDR_IN_BANK:
-	LD	HL, SECSTRT		; AN ARRAY OF 512 SECTORS PER DRIVER BANK
-	LD	A, C			; RELATIVE OFFSET
-	RLCA				; BC = A * 512
-	LD	C, 0
-	LD	B, A
-	ADD	HL, BC
-	RET
-
-	; HL MUST POINT TO SOURCE SECTOR DATA
-COPY_SECTOR_TO_USR:
-	; dbg.break
-
-	LD	E, (IX+ST_DEST_LW)
-	LD	D, (IX+ST_DEST_HI)
-	LD	BC, 512
-	; HL IS SECTOR SOUND ADDR
-	; DE IS DESTINATION ADDR
-	LDIR	; COPY TO USER DATA PAGE
-	LD	(IX+ST_DEST_HI), D
-	RET
-
 
 
 ;-----------------------------------------------------------------------------
@@ -571,18 +508,49 @@ COPY_SECTOR_TO_USR:
 ; provided, not the leftmost.
 
 DEV_INFO:
-	cp	1
-	jr	nz, DEV_INFO_2
+	CP	1
+	JR	Z, DEV_INFO_ROM
 
-	xor	a
-	LD	DE, DUM_INFO
-	LD	BC, DUM_INFO_LN
+	CP	2
+	JR	Z, DEV_INFO_CF
+
+	LD	A, 1
+	RET
+
+DEV_INFO_ROM:
+DEV_INFO_CF:
+	LD	A, B
+	CP	0
+	JR	Z, DEV_INFO_RM_0
+
+	CP	1
+	JR	Z, DEV_INFO_RM_MAN
+
+	LD	A, 1
+	RET
+
+DEV_INFO_RM_0:
+	LD	(HL), 1
+	INC	HL
+	LD	(HL), 0
+	XOR	A
+	RET
+
+DEV_INFO_RM_MAN:
+	EX	DE, HL
+	LD	HL, ROM_MAN
+	LD	BC, ROM_MAN_LEN
 	LDIR
-	ret
 
-DEV_INFO_2:
-	ld	a, 1
-	ret
+	LD	B, 64-ROM_MAN_LEN
+	EX	DE, HL
+RIGHT_PAD:
+	LD	(HL), " "
+	INC	HL
+	DJNZ	RIGHT_PAD
+
+	XOR	A
+	RET
 
 ;-----------------------------------------------------------------------------
 ;
@@ -615,21 +583,20 @@ DEV_INFO_2:
 
 DEV_STATUS:
 	CP	1
-	JR	NZ, DEV_STATUS2
-	LD	A, B
-	CP	0
-	JR	Z, DEV_STATUS1
-	CP	1
-	JR	NZ, DEV_STATUS2
+	JR	Z, DEV_STATUS_ROM
+	CP	2
+	JR	Z, DEV_STATUS_CF
 
-DEV_STATUS1:
+	XOR	A
+	RET
+
+DEV_STATUS_ROM:
 	LD	A, 1
 	RET
 
-DEV_STATUS2:
-	xor	a
-	ret
-
+DEV_STATUS_CF:
+	LD	A, 3
+	RET
 
 ;-----------------------------------------------------------------------------
 ;
@@ -667,49 +634,12 @@ DEV_STATUS2:
 
 LUN_INFO:
 	CP	1
-	JR	NZ, DEV_INFO2
-	LD	A, B
-	CP	0
-	JR	Z, DEV_INFO1
-	CP	1
-	JR	NZ, DEV_INFO2
+	JP	Z, LUN_INFO_ROM
+	CP	2
+	JP	Z, LUN_INFO_CF
 
-DEV_INFO1:
-	LD	A, 0			; standard block device
-	LD	(HL), 0
-	INC	HL
-
-	LD	(HL), 0			; sector size 512
-	INC	HL
-	LD	(HL), 2
-	INC	HL
-
-	LD	(HL), 0
-	INC	HL
-	LD	(HL), 0
-	INC	HL
-	LD	(HL), 0
-	INC	HL
-	LD	(HL), 0
-	INC	HL
-
-	LD	(HL), 1			; read only
-	INC	HL
-
-	LD	(HL), 0			; cyclinders
-	INC	HL
-	LD	(HL), 0
-	INC	HL
-
-	LD	(HL), 0			; heads
-	INC	HL
-
-	LD	(HL), 0			; sectors per track
+	LD	A, 1
 	RET
-
-DEV_INFO2:
-	ld	a,1
-	ret
 
 ;-----------------------------------------------------------------------------
 ;
@@ -766,14 +696,23 @@ no_rest:
 	ccf			;Prepare quotient bit
 	jr	div_loop
 
+	include		rcembdrv.mac
+	include		cfdrv.mac
+
 ;-----------------------------------------------------------------------------
 ;
 ; End of the driver code
 
-INFO_S:		db	"MSX Embedded Disk Driver for RC2014", 13, 10, 0
+INFO_S:		db	"MSX RC2014 Disk Driver for RC2014", 13, 10, 0
 
-DUM_INFO:	DB	"Embedded Rom Driver", 0
-DUM_INFO_LN	EQU	9
+ROM_MAN:	DB	"HOMEBREW"
+ROM_MAN_LEN	EQU	8
+
+DUM_INFO:	DB	"RC2014 Rom Driver", 0
+DUM_INFO_LN	EQU	18
+
+CF_INFO:	DB	"Compact Flash Driver", 0
+CF_INFO_LN	EQU	21
 
 ; 4000h   +---------------------+
 ;         |     Page 0 code     |

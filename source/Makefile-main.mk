@@ -52,7 +52,7 @@ $(BLDDIR)fixdisk.hex: codes.rel ver.rel fixdisk.rel fdtext.rel fdjtext.rel end.r
 # --------------------------------------------------------------------------------------
 # TOOLS
 
-TOOLS_LIST := drvinfo.com delall.com conclus.com drivers.com fastout.com lock.com mapdrv.com nsysver.com ralloc.com z80mode.com
+TOOLS_LIST := drvinfo.com delall.com conclus.com drivers.com fastout.com lock.com mapdrv.com nsysver.com ralloc.com z80mode.com devinfo.com
 .PHONY: tools
 ## Build tools binaries into the bin directory
 tools: $(TOOLS_LIST)
@@ -64,6 +64,7 @@ define buildtool =
 endef
 
 $(BLDDIR)drvinfo.hex: $(TOOL_DEPS)
+$(BLDDIR)devinfo.hex: $(TOOL_DEPS)
 $(BLDDIR)delall.hex: $(TOOL_DEPS)
 $(BLDDIR)conclus.hex: $(TOOL_DEPS)
 $(BLDDIR)drivers.hex: $(TOOL_DEPS)
@@ -303,44 +304,46 @@ sunrise: $(BLDDIR)nextor-$(VERSION).sunriseide.rom
 	@
 
 # --------------------------------------------------------------------------------------
-# DRIVER: embedded using ASCII16 Banking
+# DRIVER: rc2014 using ASCII16 Banking
 
 
 export BANK_SWITCH_CODE_ADDR := 32720 # 7FD0h
 
-$(BLDDIR)drvembed.hex $(BLDDIR)drvembed.sym: drvembed.rel
+rc2014dr.rel: rc2014dr.mac rcembdrv.mac
+
+$(BLDDIR)rc2014dr.hex $(BLDDIR)rc2014dr.sym: rc2014dr.rel
 	@cd $(BLDDIR)
-	l80.sh drvembed.hex /P:4100,DRVEMBED,DRVEMBED/N/X/Y/E
-	cleancpmfile.sh drvembed.sym
-	cat drvembed.sym
-	SECEND=$$(getsymb.sh drvembed.sym SECEND)
+	l80.sh rc2014dr.hex /P:4100,RC2014DR,RC2014DR/N/X/Y/E
+	cleancpmfile.sh rc2014dr.sym
+	cat rc2014dr.sym
+	SECEND=$$(getsymb.sh rc2014dr.sym SECEND)
 	if (($${SECEND} > $${BANK_SWITCH_CODE_ADDR})); then
 		printf "\e[31mDriver code overflow - driver bank has exceeded 16k\r\n\e[0m"
 		exit 1
 	fi
 
-$(BLDDIR)drvembed.bin: drvembed.hex
+$(BLDDIR)rc2014dr.bin: rc2014dr.hex
 	@cd $(BLDDIR)
-	rm -f drvembed.bin
-	hex2bin -s 4000 drvembed.hex
-	filesize=$$(stat -c%s "drvembed.bin")
+	rm -f rc2014dr.bin
+	hex2bin -s 4000 rc2014dr.hex
+	filesize=$$(stat -c%s "rc2014dr.bin")
 	if ((filesize > 16484 )); then
-		echo -e "\r\nError: drvembed exceeded size of 16k"
+		echo -e "\r\nError: rc2014dr exceeded size of 16k"
 		exit 1
 	fi
 
-$(BLDDIR)driver-with-sectors.bin: $(BLDDIR)drvembed.bin fdd.dsk
+$(BLDDIR)rc2014-driver-with-sectors.bin: $(BLDDIR)rc2014dr.bin fdd.dsk
 	@cd $(BLDDIR)
-	SECSTRT=$$(getsymb.sh drvembed.sym SECSTR)
-	DATSIZ=$$(getsymb.sh drvembed.sym DATSIZ)
-	dd if=/dev/zero of=driver-with-sectors.bin bs=16k count=16 seek=0
+	SECSTRT=$$(getsymb.sh rc2014dr.sym SECSTR)
+	DATSIZ=$$(getsymb.sh rc2014dr.sym DATSIZ)
+	dd if=/dev/zero of=rc2014-driver-with-sectors.bin bs=16k count=16 seek=0
 	BNK_START_ADDR=$$((SECSTRT-16384))
 	for i in {0..15}
 	do
 		BNK_ADDR=$$(($$BNK_START_ADDR + (16384*$$i)))
 		SKIP=$$(($$DATSIZ*$$i))
-		dd conv=notrunc if=drvembed.bin of=driver-with-sectors.bin bs=8k count=1 seek=$$((2*$$i))
-		dd conv=notrunc if=fdd.dsk of=driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$BNK_ADDR skip=$$SKIP
+		dd conv=notrunc if=rc2014dr.bin of=rc2014-driver-with-sectors.bin bs=8k count=1 seek=$$((2*$$i))
+		dd conv=notrunc if=fdd.dsk of=rc2014-driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$BNK_ADDR skip=$$SKIP
 	done
 
 $(BLDDIR)ymchgbnk.hex: ymchgbnk.rel
@@ -352,18 +355,19 @@ $(BLDDIR)ymchgbnk.bin: ymchgbnk.hex
 	rm -f ymchgbnk.bin
 	hex2bin -s 7FD0 ymchgbnk.hex
 
-$(BLDDIR)nextor-$(VERSION).embedded.rom: dos250ba.dat driver-with-sectors.bin ymchgbnk.bin mknexrom
+$(BLDDIR)nextor-$(VERSION).rc2014.rom: dos250ba.dat rc2014-driver-with-sectors.bin ymchgbnk.bin mknexrom
 	@cd $(BLDDIR)
-	mknexrom dos250ba.dat nextor-$(VERSION).embedded.rom -d:driver-with-sectors.bin -m:ymchgbnk.bin
-	cp -u nextor-$(VERSION).embedded.rom ../
+	mknexrom dos250ba.dat nextor-$(VERSION).rc2014.rom -d:rc2014-driver-with-sectors.bin -m:ymchgbnk.bin
+	cp -u nextor-$(VERSION).rc2014.rom ../
+
 
 # --------------------------------------------------------------------------------------
-# FLOPPY DISK IMAGE FOR EMBEDDED DRIVER
+# FLOPPY DISK IMAGE FOR RC2014 DRIVER
 
 EXTRAS = $(wildcard ../extras/*)
 $(BLDDIR)fdd.dsk: nextor.sys command2.com fixdisk.com chkdsk.com $(EXTRAS) $(TOOLS_LIST)
 	@cd $(BLDDIR)
-	DATSIZ=$$(getsymb.sh drvembed.sym DATSIZ)
+	DATSIZ=$$(getsymb.sh rc2014dr.sym DATSIZ)
 	sudo umount -df /media/fdddsk > /dev/null 2>&1 || true
 	rm -f fdd.dsk
 	dd if=/dev/zero of=fdd.dsk bs=$$(($$DATSIZ*16)) count=1
@@ -379,8 +383,8 @@ $(BLDDIR)fdd.dsk: nextor.sys command2.com fixdisk.com chkdsk.com $(EXTRAS) $(TOO
 ## Build a FAT12 floppy disk image containing nextor.sys, command2.com
 fdddsk: $(BLDDIR)fdd.dsk
 
-## Build the embedded rom image (ROM DISK)
-embedded: $(BLDDIR)nextor-$(VERSION).embedded.rom
+## Build the rc2014 rom image (ROM DISK)
+rc2014: $(BLDDIR)nextor-$(VERSION).rc2014.rom
 	@
 
 # --------------------------------------------------------------------------------------
