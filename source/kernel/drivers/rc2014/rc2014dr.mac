@@ -7,10 +7,6 @@
 	include		bluemsx.inc
 	include		const.inc
 
-SECCNT	EQU	30	; NUMBER OF SECTORS STORED IN EACH BANK
-SECSIZ	EQU	512	; NUMBER OF BYTES PER SECTOR
-SECTOT	EQU	16*SECCNT ; MUST BE LESS THAN 255
-
 
 
 ;-----------------------------------------------------------------------------
@@ -526,6 +522,12 @@ DEV_INFO_CF:
 	CP	1
 	JR	Z, DEV_INFO_RM_MAN
 
+	CP	2
+	JR	Z, DEV_INFO_RM_NAME
+
+	CP	3
+	JR	Z, DEV_INFO_RM_SERIAL
+
 	LD	A, 1
 	RET
 
@@ -542,16 +544,45 @@ DEV_INFO_RM_MAN:
 	LD	BC, ROM_MAN_LEN
 	LDIR
 
+RIGHT_PAD:
 	LD	B, 64-ROM_MAN_LEN
 	EX	DE, HL
-RIGHT_PAD:
-	LD	(HL), " "
+	LD	A, " "
+RIGHT_PAD_LP:
+	LD	(HL), A
 	INC	HL
-	DJNZ	RIGHT_PAD
+	DJNZ	RIGHT_PAD_LP
 
 	XOR	A
 	RET
 
+DEV_INFO_RM_NAME:
+	EX	DE, HL
+	LD	HL, ROM_DRV_NAME
+	LD	BC, ROM_DRV_NAME_LEN
+	LDIR
+	JR	RIGHT_PAD
+
+DEV_INFO_RM_SERIAL:
+	LD	BC, 63
+	ADD	HL, BC
+
+	LD	(HL), '1'
+	DEC	HL
+	LD	(HL), '2'
+	DEC	HL
+
+LEFT_PAD:
+	LD	B, 62
+	LD	A, " "
+
+LEFT_PAD_LP:
+	LD	(HL), A
+	DEC	HL
+	DJNZ	LEFT_PAD_LP
+
+	XOR	A
+	RET
 ;-----------------------------------------------------------------------------
 ;
 ; Obtain device status
@@ -703,16 +734,16 @@ no_rest:
 ;
 ; End of the driver code
 
-INFO_S:		db	"MSX RC2014 Disk Driver for RC2014", 13, 10, 0
+INFO_S:			DB	"RC2014 Disk Driver", 13, 10, 0
 
-ROM_MAN:	DB	"HOMEBREW"
-ROM_MAN_LEN	EQU	8
+ROM_MAN:		DB	"Homebrew"
+ROM_MAN_LEN		EQU	$-ROM_MAN
 
-DUM_INFO:	DB	"RC2014 Rom Driver", 0
-DUM_INFO_LN	EQU	18
+ROM_DRV_NAME:		DB	"ROM Disk"
+ROM_DRV_NAME_LEN	EQU	$-ROM_DRV_NAME
 
-CF_INFO:	DB	"Compact Flash Driver", 0
-CF_INFO_LN	EQU	21
+CF_INFO:		DB	"Compact Flash Driver", 0
+CF_INFO_LN		EQU	$-CF_INFO
 
 ; 4000h   +---------------------+
 ;         |     Page 0 code     |
