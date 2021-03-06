@@ -830,7 +830,7 @@ BSC::
 INIT2:
 	call	CHK_DUP	;Will just POP and RET if slot already processed
 
-    call DO_KEYS_INIT
+	call	DO_KEYS_INIT
 
 	; call	DISABLE_KEY
 	; ret	nz
@@ -910,10 +910,10 @@ if STURBO
 	cp	3		;MSXturboR?
 	ret	c		;no
 
-    ld a,(BOOTKEYS##)
-    and 00000010b ;Scan "1" key
+	ld	a,(BOOTKEYS##)
+	and	00000010b ;Scan "1" key
 	ld	a,82h		;If "1" key is NOT being pressed
-	call z,CHGCPU	; switch to Super-Turbo mode.
+	call	z,CHGCPU	; switch to Super-Turbo mode.
 endif
 ;;if HYBRID
 ;;	xor	a
@@ -1090,10 +1090,10 @@ BOTTOM_OK:
 	sbc	hl,de	;HL = -DE
 	add	hl,sp
 
-    xor a
+	xor	a
 	call	CALL_DV_INIT
-    push af
-    pop bc
+	push	af
+	pop	bc
 	ld	e,c
 	res	1,e
 
@@ -1103,7 +1103,7 @@ BOTTOM_OK:
 	ld	hl,DV_TYPE##
 	call	CALDRV##
 
-    ld h,a
+	ld	h,a
 	and	1	;Device-based driver?
 	ld	(PROCNM+8),a
     ld a,h

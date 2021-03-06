@@ -28,7 +28,7 @@ START:
 	ld	a,1
 	call	EXTPAR##
 	jr	nz,FOUND_PARAMS
-	
+
 	ld	de,USAGE_S
 	ld	c,_ZSTROUT##
 	call	5
@@ -39,7 +39,7 @@ FOUND_PARAMS:
 
 	ld	hl,BUF
 	call	GETSLOT##
-	or a	
+	or a
 	jr	nz,NO_PRIMARY
 	ld	a,(0F348h)
 NO_PRIMARY:
@@ -137,7 +137,7 @@ GET_INFO_2:
 	ld	de,CRLF
 	ld	c,_ZSTROUT##
 	call	5
-	
+
 	;* Get and display serial number
 
 GET_INFO_3:
@@ -185,7 +185,7 @@ GET_INFO_4:
 	ld	(iy+7),h
 
 LUN_INFO_LOOP:
-	call	CALL_LUNINFO	
+	call	CALL_LUNINFO
 	push	ix
 	pop	af
 	or	a
@@ -234,7 +234,7 @@ OK_LUNTYPE:
 	rr	l
 	rr	d
 	rr	e
-	
+
 	ld	a,h
 	or	l
 	jr	nz,DIVIDE1
@@ -376,7 +376,7 @@ CALL_DRIVER:
 	ld	b,a
 	ld	c,_TERM##
 	jp	5
-	
+
 
 Num2Dec:
 	xor	a
@@ -470,4 +470,5 @@ BUF:
 BUF_REG:
 BUF_REG2	equ	BUF_REG+8
 BUF_INFO	equ	BUF_REG2+8
+
 	end
