@@ -1,0 +1,53 @@
+
+
+DEV_READ_CF:
+	LD	A, .DATA
+	LD	B, 0
+	RET
+
+DEV_WRT_CF:
+	LD	A, .WRERR
+	LD	B, 0
+	RET
+
+
+LUN_INFO_CF:
+	LD	A, B
+	CP	1
+	JR	NZ, LUN_INFO_CF_INVALID
+
+	LD	A, 0			; standard block device
+	LD	(HL), 0
+	INC	HL
+
+	LD	(HL), 0			; sector size 512
+	INC	HL
+	LD	(HL), 2
+	INC	HL
+
+	LD	(HL), 0			; total sector count
+	INC	HL
+	LD	(HL), 0
+	INC	HL
+	LD	(HL), 0
+	INC	HL
+	LD	(HL), 0
+	INC	HL
+
+	LD	(HL), 1			; read only
+	INC	HL
+
+	LD	(HL), 0			; cyclinders
+	INC	HL
+	LD	(HL), 0
+	INC	HL
+
+	LD	(HL), 0			; heads
+	INC	HL
+
+	LD	(HL), 0			; sectors per track
+	RET
+
+LUN_INFO_CF_INVALID:
+	LD	A, 1
+	RET
