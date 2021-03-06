@@ -327,7 +327,6 @@ $(BLDDIR)rcembdrv.hex $(BLDDIR)rcembdrv.sym: rcembdrv.rel
 	@cd $(BLDDIR)
 	l80.sh rcembdrv.hex /P:4100,RCEMBDRV,RCEMBDRV/N/X/Y/E
 	cleancpmfile.sh rcembdrv.sym
-	cat rcembdrv.sym
 	SECEND=$$(getsymb.sh rcembdrv.sym SECEND)
 	if (($${SECEND} > $${BANK_SWITCH_CODE_ADDR})); then
 		printf "\e[31mDriver code overflow - driver bank has exceeded 16k\r\n\e[0m"
@@ -354,16 +353,16 @@ $(BLDDIR)rcembdrv.bin: rcembdrv.hex
 		exit 1
 	fi
 
+.PRECIOUS: %.hex
+
 $(BLDDIR)rc2014-driver-with-sectors.bin: $(BLDDIR)rc2014dr.bin $(BLDDIR)rcembdrv.bin fdd.dsk
 	@cd $(BLDDIR)
 	SECSTRT=$$(getsymb.sh rcembdrv.sym SECSTR)
 	DATSIZ=$$(getsymb.sh rcembdrv.sym DATSIZ)
-	dd if=/dev/zero of=rc2014-driver-with-sectors.bin bs=16k count=17 seek=0
-
+	dd if=/dev/zero of=rc2014-driver-with-sectors.bin bs=16k count=20 seek=0
 	dd conv=notrunc if=rc2014dr.bin of=rc2014-driver-with-sectors.bin bs=8k count=1 seek=0
-
 	BNK_START_ADDR=$$((SECSTRT-16384))
-	for i in {1..16}
+	for i in {1..19}
 	do
 		BNK_ADDR=$$(($$BNK_START_ADDR + (16384*($$i))))
 		SKIP=$$(($$DATSIZ*($$i-1)))
@@ -390,12 +389,12 @@ $(BLDDIR)nextor-$(VERSION).rc2014.rom: dos250ba.dat rc2014-driver-with-sectors.b
 # FLOPPY DISK IMAGE FOR RC2014 DRIVER
 
 EXTRAS = $(wildcard ../extras/*)
-$(BLDDIR)fdd.dsk: nextor.sys command2.com fixdisk.com chkdsk.com $(EXTRAS) $(TOOLS_LIST)
+$(BLDDIR)fdd.dsk: nextor.sys command2.com fixdisk.com chkdsk.com $(EXTRAS) $(TOOLS_LIST) rcembdrv.sym
 	@cd $(BLDDIR)
-	DATSIZ=$$(getsymb.sh rc2014dr.sym DATSIZ)
+	DATSIZ=$$(getsymb.sh rcembdrv.sym DATSIZ)
 	sudo umount -df /media/fdddsk > /dev/null 2>&1 || true
 	rm -f fdd.dsk
-	dd if=/dev/zero of=fdd.dsk bs=$$(($$DATSIZ*16)) count=1
+	dd if=/dev/zero of=fdd.dsk bs=$$(($$DATSIZ*19)) count=1
 	mkfs.vfat -F 12 -f 1 fdd.dsk
 	sudo mkdir -p /media/fdddsk
 	sudo mount -t vfat fdd.dsk /media/fdddsk

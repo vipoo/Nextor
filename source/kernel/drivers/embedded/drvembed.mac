@@ -12,7 +12,6 @@ SECSIZ	EQU	512	; NUMBER OF BYTES PER SECTOR
 SECTOT	EQU	16*SECCNT ; MUST BE LESS THAN 255
 
 
-
 ;-----------------------------------------------------------------------------
 ;
 ; Standard BIOS and work area entries
