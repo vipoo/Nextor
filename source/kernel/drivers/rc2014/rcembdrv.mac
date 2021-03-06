@@ -1,78 +1,19 @@
 
 
+	; IMAGE FOR SECONDARY BANKS (INCLUDED WITH ROM SECTOR DATA)
+	include		condasm.inc
+	include		bluemsx.inc
+	include		const.inc
+	include		embinc.mac
 
-SECCNT	EQU	30	; NUMBER OF SECTORS STORED IN EACH BANK
-SECSIZ	EQU	512	; NUMBER OF BYTES PER SECTOR
-SECTOT	EQU	16*SECCNT
+	PUBLIC	SEC_RAW_CPY, SECSTRT, SECEND, DATSIZE
 
-
-ST_RD_CNT	EQU	0	; COUNT OF SECTORS TO BE READ
-ST_INDX_LW	EQU	1	; SECTOR TO BE READ
-ST_INDX_HI	EQU	2	; SECTOR TO BE READ 	; MUST BE LESS THAN 65536
-ST_DEST_LW	EQU	3	; SECTOR DESTINATION ADDRESS (LOW)
-ST_DEST_HI	EQU	4	; (HIGH)
-ST_RD_CND_RQ	EQU	5	; NUMBER OF SECTORS REQUESTED
-
-DEV_READ_ROM:
-	CALL	MY_GWORK
-
-	LD	(IX+ST_RD_CNT), B
-	LD	(IX+ST_RD_CND_RQ), B
-	LD	A, (DE)			; RETRIEVE SECTOR NUMBER  (ASSUMING LESS THEN 255 FOR MOMENT)
-	LD	(IX+ST_INDX_LW), A
-	INC	DE
-	LD	A, (DE)
-	LD	(IX+ST_INDX_HI),A
-
-	INC	DE
-	LD	A, (DE)
-	OR	A
-	JR	Z, SKIP1
-
-SKIP1:
-	LD	(IX+ST_DEST_LW), L
-	LD	(IX+ST_DEST_HI), H
-
-DEV_RW_LP:
-	CALL	SEC_CPY
-
-	PUSH	HL
-	LD	L, (IX+ST_INDX_lW)		; INCREMENT SECTOR IDX
-	LD	H, (IX+ST_INDX_HI)
-	INC	HL
-	LD	(IX+ST_INDX_LW), L
-	LD	(IX+ST_INDX_HI), H
-	POP	HL
-skip:
-
-	LD	A, (IX+ST_RD_CNT)	; MORE SECTORS TO GO?
-	DEC	A
-	LD	(IX+ST_RD_CNT), A
-	JR	NZ, DEV_RW_LP
-
-	LD	B, (IX+ST_RD_CND_RQ)	; LOAD SECTORED COPIED COUNT
-	XOR	A			; RETURN SUCCESS
-	RET
-
-SEC_CPY:
-	PUSH	HL			; SAVE DEST ADDR
-	LD	DE, SECCNT		; FIND THE BANK FOR SECTOR
-	LD	C, (IX+ST_INDX_LW)
-	LD	B, (IX+ST_INDX_HI)
-	CALL	DIV16
-
-	LD	A, C			; BANK ID TO A
-	ADD	A, DRV_BANK_NO
-	LD	C, L			; SECTOR OFFSET TO C
-	POP	HL			; RESTORE DEST ADDR
-	;	A <= BANK FOR SECTOR
-	;	C <= SECTOR RELATIVE OFFSET WITHIN BANK (SECTOR MOD SECCNT)
-
-	LD	IX, SEC_RAW_CPY
-	JP	CALBNK			; CONTINUE COPY IN OTHER BANK
+	; ORG WILL BE $4100
 
 SEC_RAW_CPY:
 	; C IS THE RELATIVE OFFSET WITHIN LOCAL SECTORS
+	LD	B, B
+	JR	$+2
 
 	CALL	MY_GWORK
 
@@ -102,47 +43,46 @@ COPY_SECTOR_TO_USR:
 	LD	(IX+ST_DEST_HI), D
 	RET
 
-DEV_WRT_ROM:
-	LD	A, .WPROT
-	LD	B, 0
+;-----------------------------------------------------------------------------
+;
+; Obtain the work area address for the driver
+; Input: A=1  to obtain the work area for the master, 2 for the slave
+; Preserves A
+
+MY_GWORK:
+	PUSH	AF
+	XOR	A
+	EX	AF,AF'
+	XOR	A
+	LD	IX, GWORK
+	CALL	CALBNK
+	POP	AF
 	RET
 
-LUN_INFO_ROM:
-	LD	A, B
-	CP	1
-	JR	NZ, LUN_INFO_ROM_INVALID
-	LD	A, 0			; standard block device
-	LD	(HL), 0
-	INC	HL
+; 4000h   +---------------------+
+;         |     Page 0 code     |
+;         +---------------------+
+; 40FEh   |          K          |
+;         +---------------------+
+; 40FFh   |       Bank ID       |
+; 4100h   +---------------------+
+;         |     driver code     |
+; SECSTRT +---------------------+
+;         |                     |
+;         |    sector data 	|
+;         |                     |
+; 7FD0h   +---------------------+
+;         | Bank switching code |
+; 7FFFh   +---------------------+
 
-	LD	(HL), 0			; sector size 512
-	INC	HL
-	LD	(HL), 2
-	INC	HL
+SECTOR_INDX_START	EQU	07F00h
+SECTORS			EQU	05F00h		; 8k of data (16 sectors)
 
-	LD	(HL), SECTOT AND 255
-	INC	HL
-	LD	(HL), SECTOT/256
-	INC	HL
-	LD	(HL), 0
-	INC	HL
-	LD	(HL), 0
-	INC	HL
+DRV_END:
 
-	LD	(HL), 2			; read only
-	INC	HL
+SECSTRT:
+	DS	SECCNT * SECSIZ, 0
+SECEND:
+DATSIZE	EQU	SECCNT * SECSIZ
 
-	LD	(HL), 0			; cyclinders
-	INC	HL
-	LD	(HL), 0
-	INC	HL
-
-	LD	(HL), 0			; heads
-	INC	HL
-
-	LD	(HL), 0			; sectors per track
-	RET
-
-LUN_INFO_ROM_INVALID:
-	LD	A, 1
-	RET
+	END

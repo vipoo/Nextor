@@ -309,14 +309,26 @@ sunrise: $(BLDDIR)nextor-$(VERSION).sunriseide.rom
 
 export BANK_SWITCH_CODE_ADDR := 32720 # 7FD0h
 
-rc2014dr.rel: rc2014dr.mac rcembdrv.mac
+rc2014dr.rel: rc2014dr.mac cfdrv.mac embinc.mac
+rcembdrv.rel: rcembdrv.mac embinc.mac
 
-$(BLDDIR)rc2014dr.hex $(BLDDIR)rc2014dr.sym: rc2014dr.rel
+$(BLDDIR)rc2014dr.hex: rc2014dr.rel
 	@cd $(BLDDIR)
 	l80.sh rc2014dr.hex /P:4100,RC2014DR,RC2014DR/N/X/Y/E
 	cleancpmfile.sh rc2014dr.sym
 	cat rc2014dr.sym
-	SECEND=$$(getsymb.sh rc2014dr.sym SECEND)
+	DRVEND=$$(getsymb.sh rc2014dr.sym DRVEND)
+	if (($${DRVEND} > $${BANK_SWITCH_CODE_ADDR})); then
+		printf "\e[31mDriver code overflow - driver bank has exceeded 16k\r\n\e[0m"
+		exit 1
+	fi
+
+$(BLDDIR)rcembdrv.hex $(BLDDIR)rcembdrv.sym: rcembdrv.rel
+	@cd $(BLDDIR)
+	l80.sh rcembdrv.hex /P:4100,RCEMBDRV,RCEMBDRV/N/X/Y/E
+	cleancpmfile.sh rcembdrv.sym
+	cat rcembdrv.sym
+	SECEND=$$(getsymb.sh rcembdrv.sym SECEND)
 	if (($${SECEND} > $${BANK_SWITCH_CODE_ADDR})); then
 		printf "\e[31mDriver code overflow - driver bank has exceeded 16k\r\n\e[0m"
 		exit 1
@@ -332,17 +344,30 @@ $(BLDDIR)rc2014dr.bin: rc2014dr.hex
 		exit 1
 	fi
 
-$(BLDDIR)rc2014-driver-with-sectors.bin: $(BLDDIR)rc2014dr.bin fdd.dsk
+$(BLDDIR)rcembdrv.bin: rcembdrv.hex
 	@cd $(BLDDIR)
-	SECSTRT=$$(getsymb.sh rc2014dr.sym SECSTR)
-	DATSIZ=$$(getsymb.sh rc2014dr.sym DATSIZ)
-	dd if=/dev/zero of=rc2014-driver-with-sectors.bin bs=16k count=16 seek=0
+	rm -f rcembdrv.bin
+	hex2bin -s 4000 rcembdrv.hex
+	filesize=$$(stat -c%s "rcembdrv.bin")
+	if ((filesize > 16484 )); then
+		echo -e "\r\nError: rcembdrv exceeded size of 16k"
+		exit 1
+	fi
+
+$(BLDDIR)rc2014-driver-with-sectors.bin: $(BLDDIR)rc2014dr.bin $(BLDDIR)rcembdrv.bin fdd.dsk
+	@cd $(BLDDIR)
+	SECSTRT=$$(getsymb.sh rcembdrv.sym SECSTR)
+	DATSIZ=$$(getsymb.sh rcembdrv.sym DATSIZ)
+	dd if=/dev/zero of=rc2014-driver-with-sectors.bin bs=16k count=17 seek=0
+
+	dd conv=notrunc if=rc2014dr.bin of=rc2014-driver-with-sectors.bin bs=8k count=1 seek=0
+
 	BNK_START_ADDR=$$((SECSTRT-16384))
-	for i in {0..15}
+	for i in {1..16}
 	do
-		BNK_ADDR=$$(($$BNK_START_ADDR + (16384*$$i)))
-		SKIP=$$(($$DATSIZ*$$i))
-		dd conv=notrunc if=rc2014dr.bin of=rc2014-driver-with-sectors.bin bs=8k count=1 seek=$$((2*$$i))
+		BNK_ADDR=$$(($$BNK_START_ADDR + (16384*($$i))))
+		SKIP=$$(($$DATSIZ*($$i-1)))
+		dd conv=notrunc if=rcembdrv.bin of=rc2014-driver-with-sectors.bin bs=8k count=1 seek=$$((2*$$i))
 		dd conv=notrunc if=fdd.dsk of=rc2014-driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$BNK_ADDR skip=$$SKIP
 	done
 
