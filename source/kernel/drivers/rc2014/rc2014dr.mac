@@ -6,7 +6,7 @@
 	include		condasm.inc
 	include		bluemsx.inc
 	include		const.inc
-
+	include		embinc.mac
 
 
 ;-----------------------------------------------------------------------------
@@ -68,18 +68,7 @@ VER_REV		equ	0
 
 
 
-;-----------------------------------------------------------------------------
-;
-; Routines and information available on kernel page 0
-;
 
-;* Get in A the current slot for page 1. Corrupts F.
-;  Must be called by using CALBNK to bank 0:
-;    xor a
-;    ld ix,GSLOT1
-;    call CALBNK
-
-GSLOT1	equ	402Dh
 
 
 ;* This routine reads a byte from another bank.
@@ -107,33 +96,8 @@ RDBANK	equ	403Ch
 CALLB0	equ	403Fh
 
 
-;* Call a routine in another bank.
-;  Must be used if the driver spawns across more than one bank.
-;
-;  Input:  A = bank number
-;          IX = routine address
-;          AF' = AF for the routine
-;          HL' = Ix for the routine
-;          BC, DE, HL, IY = input for the routine
-;  Output: AF, BC, DE, HL, IX, IY returned from the called routine.
-
-CALBNK	equ	4042h
 
 
-;* Get in IX the address of the SLTWRK entry for the slot passed in A,
-;  which will in turn contain a pointer to the allocated page 3
-;  work area for that slot (0 if no work area was allocated).
-;  If A=0, then it uses the slot currently switched in page 1.
-;  Returns A=current slot for page 1, if A=0 was passed.
-;  Corrupts F.
-;  Must be called by using CALBNK to bank 0:
-;    ld a,<slot number> (xor a for current page 1 slot)
-;    ex af,af'
-;    xor a
-;    ld ix,GWORK
-;    call CALBNK
-
-GWORK	equ	4045h
 
 
 ;* This address contains one byte that tells how many banks
@@ -672,6 +636,131 @@ LUN_INFO:
 	LD	A, 1
 	RET
 
+
+
+
+;-----------------------------------------------------------------------------
+; CODE FOR ROM DRIVER (PRIMARY BANK)
+;-----------------------------------------------------------------------------
+
+SEC_RAW_CPY	EQU	04100H
+
+DEV_WRT_ROM:
+	LD	A, .WPROT
+	LD	B, 0
+	RET
+
+DEV_READ_ROM:
+	LD	B, B
+	JR	$+2
+
+	CALL	MY_GWORK
+
+	LD	(IX+ST_RD_CNT), B
+	LD	(IX+ST_RD_CND_RQ), B
+	LD	A, (DE)			; RETRIEVE SECTOR NUMBER  (ASSUMING LESS THEN 255 FOR MOMENT)
+	LD	(IX+ST_INDX_LW), A
+	INC	DE
+	LD	A, (DE)
+	LD	(IX+ST_INDX_HI),A
+
+	INC	DE
+	LD	A, (DE)
+	OR	A
+	JR	Z, SKIP1
+
+SKIP1:
+	LD	(IX+ST_DEST_LW), L
+	LD	(IX+ST_DEST_HI), H
+
+DEV_RW_LP:
+	CALL	SEC_CPY
+
+	PUSH	HL
+	LD	L, (IX+ST_INDX_lW)		; INCREMENT SECTOR IDX
+	LD	H, (IX+ST_INDX_HI)
+	INC	HL
+	LD	(IX+ST_INDX_LW), L
+	LD	(IX+ST_INDX_HI), H
+	POP	HL
+skip:
+
+	LD	A, (IX+ST_RD_CNT)	; MORE SECTORS TO GO?
+	DEC	A
+	LD	(IX+ST_RD_CNT), A
+	JR	NZ, DEV_RW_LP
+
+	LD	B, (IX+ST_RD_CND_RQ)	; LOAD SECTORED COPIED COUNT
+	XOR	A			; RETURN SUCCESS
+	RET
+
+SEC_CPY:
+	PUSH	HL			; SAVE DEST ADDR
+	LD	DE, SECCNT		; FIND THE BANK FOR SECTOR
+	LD	C, (IX+ST_INDX_LW)
+	LD	B, (IX+ST_INDX_HI)
+	CALL	DIV16
+
+	LD	A, C			; BANK ID TO A
+	ADD	A, SECBNK
+	LD	C, L			; SECTOR OFFSET TO C
+	POP	HL			; RESTORE DEST ADDR
+	;	A <= BANK FOR SECTOR
+	;	C <= SECTOR RELATIVE OFFSET WITHIN BANK (SECTOR MOD SECCNT)
+
+	LD	IX, SEC_RAW_CPY
+	JP	CALBNK			; CONTINUE COPY IN OTHER BANK
+
+
+
+
+
+
+LUN_INFO_ROM:
+	LD	A, B
+	CP	1
+	JR	NZ, LUN_INFO_ROM_INVALID
+	LD	A, 0			; standard block device
+	LD	(HL), 0
+	INC	HL
+
+	LD	(HL), 0			; sector size 512
+	INC	HL
+	LD	(HL), 2
+	INC	HL
+
+	LD	(HL), SECTOT AND 255
+	INC	HL
+	LD	(HL), SECTOT/256
+	INC	HL
+	LD	(HL), 0
+	INC	HL
+	LD	(HL), 0
+	INC	HL
+
+	LD	(HL), 2			; read only
+	INC	HL
+
+	LD	(HL), 0			; cyclinders
+	INC	HL
+	LD	(HL), 0
+	INC	HL
+
+	LD	(HL), 0			; heads
+	INC	HL
+
+	LD	(HL), 0			; sectors per track
+	RET
+
+LUN_INFO_ROM_INVALID:
+	LD	A, 1
+	RET
+
+
+
+
+
+
 ;-----------------------------------------------------------------------------
 ;
 ; Print a zero-terminated string on screen
@@ -727,7 +816,6 @@ no_rest:
 	ccf			;Prepare quotient bit
 	jr	div_loop
 
-	include		rcembdrv.mac
 	include		cfdrv.mac
 
 ;-----------------------------------------------------------------------------
@@ -757,24 +845,21 @@ CF_INFO_LN		EQU	$-CF_INFO
 ;         |     driver code     |
 ;         |                     |
 ;         |                     |
-;         |                     |
-; SECSTRT +---------------------+
-;         |    sector data 	|
-;         |                     |
 ; 7FD0h   +---------------------+
 ;         | Bank switching code |
 ; 7FFFh   +---------------------+
 
-SECTOR_INDX_START	EQU	07F00h
-SECTORS			EQU	05F00h		; 8k of data (16 sectors)
+; SECTOR_INDX_START	EQU	07F00h
+; SECTORS			EQU	05F00h		; 8k of data (16 sectors)
 
-	PUBLIC	SECSTRT, SECEND, DATSIZE
-DRV_END:
+; 	PUBLIC	SECSTRT, SECEND, DATSIZE
+; DRV_END:
 
-SECSTRT:
-	DS	SECCNT * SECSIZ, 0
-SECEND:
-DATSIZE	EQU	SECCNT * SECSIZ
+; SECSTRT:
+; 	DS	SECCNT * SECSIZ, 0
+; SECEND:
+; DATSIZE	EQU	SECCNT * SECSIZ
 
-END:
+	PUBLIC	DRVEND
+DRVEND:
 	end
