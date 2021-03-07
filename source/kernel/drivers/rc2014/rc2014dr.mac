@@ -68,9 +68,6 @@ VER_REV		equ	0
 
 
 
-
-
-
 ;* This routine reads a byte from another bank.
 ;  Must be called by using CALBNK to the desired bank,
 ;  passing the address to be read in HL:
@@ -164,7 +161,7 @@ DRV_NAME:
 	; These routines are mandatory for all drivers
         ; (but probably you need to implement only DRV_INIT)
 
-	jp	DRV_TIMI
+	jp	0;DRV_TIMI
 	jp	DRV_VERSION
 	jp	DRV_INIT
 	jp	DRV_BASSTAT
@@ -197,8 +194,8 @@ DRV_NAME:
 ; Timer interrupt routine, it will be called on each timer interrupt
 ; (at 50 or 60Hz), but only if DRV_INIT returns Cy=1 on its first execution.
 
-DRV_TIMI:
-	ret
+; DRV_TIMI:
+; 	ret
 
 
 ;-----------------------------------------------------------------------------
@@ -233,18 +230,26 @@ DRV_TIMI:
 ;     get two allocated drives.)
 
 DRV_INIT:
-	or	a
-	ld	hl,0
-	; ld	a,2
-	ld	a, 0
-	ret	z			;Note that Cy is 0 (no interrupt hooking needed)
+	OR	A
+	JR	NZ, DRV_INIT2
 
-	ld	de,INFO_S
-	call	PRINT
 
-	xor	a
-	ld	hl,0
-	ret
+	LD	DE, INFO_S
+	CALL	PRINT
+	CALL	DRV_INIT_CF
+
+	JR	Z, DRV_INIT2	; NOT PRESENT
+
+	CALL	MY_GWORK
+	LD	A, PRES_CF
+	LD	(IX+ST_PRESENT), A
+
+	;NOTE THAT CY IS 0 (NO INTERRUPT HOOKING NEEDED)
+
+DRV_INIT2:
+	XOR	A
+	LD	HL, 0
+	RET
 
 
 ;-----------------------------------------------------------------------------
@@ -345,7 +350,15 @@ DRV_DIRECT4:
 DRV_CONFIG:
 	CP	1
 	JR	NZ, DRV_CONFIG1
+	LD	B, 1
+
+	CALL	MY_GWORK
+	LD	A, (IX+ST_PRESENT)
+	AND	PRES_CF
+	JR	Z, DRV_CFG_NO_CF
 	LD	B, 2
+
+DRV_CFG_NO_CF:
 	XOR	A
 	RET
 
@@ -474,14 +487,30 @@ DEV_INFO:
 	CP	2
 	JR	Z, DEV_INFO_CF
 
+DEV_INFO_NO_DEV:
 	LD	A, 1
 	RET
 
-DEV_INFO_ROM:
 DEV_INFO_CF:
+	LD	B,B
+	JR	$+2
+	PUSH	BC
+	CALL	MY_GWORK
+	LD	A, (IX+ST_PRESENT)
+	AND	PRES_CF
+	JR	Z, DEV_INFO_NO_DEV
+	POP	BC
+
 	LD	A, B
 	CP	0
-	JR	Z, DEV_INFO_RM_0
+	JR	Z, DEV_INFO_0
+
+	JP	DEV_INFO_CF_FLDS
+
+DEV_INFO_ROM:
+	LD	A, B
+	CP	0
+	JR	Z, DEV_INFO_0
 
 	CP	1
 	JR	Z, DEV_INFO_RM_MAN
@@ -495,7 +524,7 @@ DEV_INFO_CF:
 	LD	A, 1
 	RET
 
-DEV_INFO_RM_0:
+DEV_INFO_0:
 	LD	(HL), 1
 	INC	HL
 	LD	(HL), 0
@@ -507,9 +536,9 @@ DEV_INFO_RM_MAN:
 	LD	HL, ROM_MAN
 	LD	BC, ROM_MAN_LEN
 	LDIR
+	LD	B, 64-ROM_MAN_LEN
 
 RIGHT_PAD:
-	LD	B, 64-ROM_MAN_LEN
 	EX	DE, HL
 	LD	A, " "
 RIGHT_PAD_LP:
@@ -525,6 +554,7 @@ DEV_INFO_RM_NAME:
 	LD	HL, ROM_DRV_NAME
 	LD	BC, ROM_DRV_NAME_LEN
 	LDIR
+	LD	B, 64-ROM_DRV_NAME_LEN
 	JR	RIGHT_PAD
 
 DEV_INFO_RM_SERIAL:
@@ -728,7 +758,7 @@ LUN_INFO_ROM:
 
 	LD	(HL), SECTOT AND 255
 	INC	HL
-	LD	(HL), SECTOT/256
+	LD	(HL), SECTOT / 256
 	INC	HL
 	LD	(HL), 0
 	INC	HL
