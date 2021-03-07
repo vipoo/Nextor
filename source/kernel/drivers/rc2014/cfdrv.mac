@@ -1,3 +1,7 @@
+; COMPACT FLASH/IDE DRIVER
+; ONLY WORKS FOR 8 BIT IDE MODE
+; TODO: ERROR HANDLING
+
 
 CFBASE	EQU	010h		; IDE 0: IO BASE ADDRESS
 
@@ -64,9 +68,59 @@ CF_FOUND:
 	RET
 
 
+; Read or write logical sectors from/to a logical unit
+;
+;Input:    Cy=0 to read, 1 to write
+;          A = Device number, 1 to 7
+;          B = Number of sectors to read or write
+;          C = Logical unit number, 1 to 7
+;          HL = Source or destination memory address for the transfer
+;          DE = Address where the 4 byte sector number is stored.
+;Output:   A = Error code (the same codes of MSX-DOS are used):
+;              0: Ok
+;              .IDEVL: Invalid device or LUN
+;              .NRDY: Not ready
+;              .DISK: General unknown disk error
+;              .DATA: CRC error when reading
+;              .RNF: Sector not found
+;              .UFORM: Unformatted disk
+;              .WPROT: Write protected media, or read-only logical unit
+;              .WRERR: Write error
+;              .NCOMP: Incompatible disk.
+;              .SEEK: Seek error.
+;          B = Number of sectors actually read (in case of error only)
 DEV_READ_CF:
-	LD	A, .DATA
-	LD	B, 0
+	CALL 	CF_WAIT_BUSY
+
+	LD 	A, B			; STORE SECTOR COUNT
+	LD	C, A
+
+	OUT 	(CFSECCO), A
+	CALL 	CF_WAIT_BUSY
+	LD	A, (DE)
+	INC	DE
+	OUT	(CFLBA0), A			;LBA 0:7
+	CALL 	CF_WAIT_BUSY
+	LD	A, (DE)
+	INC	DE
+	OUT	(CFLBA1),A			;LBA 8:15
+	CALL 	CF_WAIT_BUSY
+	LD	A, (DE)
+	INC	DE
+	OUT 	(CFLBA2),A			;LBA 16:23
+	CALL 	CF_WAIT_BUSY
+	LD	A, (DE)
+	AND	00FH			; LBA 24:27 + DRV 0 selected + bits 5:7=111
+	OR	0E0H			; SELECT MASTER DRIVE
+	OUT 	(CFLBA3), A
+	CALL 	CF_WAIT_BUSY
+
+	PUSH	BC			; SAVE SECTOR COUNT (C)
+	CALL	CF_RD_CMD
+	POP	BC			; RESTORE SECTOR COUNT
+
+	XOR	A
+	LD	B, C
 	RET
 
 DEV_WRT_CF:
@@ -168,6 +222,14 @@ LUN_INFO_CF:
 	LDIR
 	EX	DE, HL
 
+	DEC	HL			; RESERVE SPACE AT START
+	DEC	HL
+	LD	A, (HL)
+	DEC	A
+	LD	(HL), A
+	INC	HL
+	INC	HL
+
 	LD	(HL), 0			; writable
 	INC	HL
 
@@ -180,6 +242,7 @@ LUN_INFO_CF:
 	INC	HL
 
 	LD	(HL), 0			; sectors per track
+	XOR	A
 	RET
 
 LUN_INFO_CF_INVALID:
@@ -257,10 +320,10 @@ CF_READ_IDENT:
 	LD	A, 0ECH					; identity command
 	OUT	(CFCMD), A
 
-	LD	B, 0
-loop:
-	djnz	loop
+	LD	B, 0					; DELAY
+loop:	djnz	loop
 	; //TODO CHECK ERROR
+	LD	C, 1					; READ 1 SECTOR
 	JR	CF_REDDAT
 
 
@@ -278,18 +341,22 @@ CF_RD_CMD:
 	AND	01H				;mask off error bit
 	JR	NZ, CF_RD_CMD			;Try again if error
 
+	LD	C, B				; number of sectors to read
 CF_REDDAT:						; READ sector into HL
-	LD 	B, 0				;read 256 words (512 bytes per sector)
+	LD 	B, 0				; read 256 words (512 bytes per sector)
 CF_RD_SECT:
 	CALL	CF_WAIT_DAT_RDY
-	IN 	A, (CFDATA)				;get byte of ide data
+	IN 	A, (CFDATA)				; get byte of ide data
 	LD 	(HL), A
 	INC 	HL
 	CALL	CF_WAIT_DAT_RDY
-	IN 	A, (CFDATA)				;get byte of ide data
+	IN 	A, (CFDATA)				; get byte of ide data
 	LD 	(HL), A
 	INC 	HL
 	DJNZ 	CF_RD_SECT
+
+	DEC	C
+	JR	NZ, CF_REDDAT
 	RET
 
 
