@@ -4,19 +4,44 @@ CFBASE	EQU	010h		; IDE 0: IO BASE ADDRESS
 
 ;The addresses that the CF Card resides in I/O space.
 ;Change to suit hardware.
-CFDATA		EQU	CFBASE + 00		; Data (R/W)
-CFERR		EQU	CFBASE + 01		; Error register (R)
-CFFEAT		EQU	CFBASE + 01		; Features (W)
-CFSECCO		EQU	CFBASE + 02		; Sector count (R/W)
-CFLBA0		EQU	CFBASE + 03		; LBA bits 0-7 (R/W, LBA mode)
-CFLBA1		EQU	CFBASE + 04		; LBA bits 8-15 (R/W, LBA mode)
-CFLBA2		EQU	CFBASE + 05		; LBA bits 16-23 (R/W, LBA mode)
-CFLBA3		EQU	CFBASE + 06		; LBA bits 24-27 (R/W, LBA mode)
-CFSTAT		EQU	CFBASE + 07		; Status (R)
-CFCMD		EQU	CFBASE + 07		; Command (W)
+CFDATA	EQU	CFBASE + 00		; Data (R/W)
+CFERR	EQU	CFBASE + 01		; Error register (R)
+CFFEAT	EQU	CFBASE + 01		; Features (W)
+CFSECCO	EQU	CFBASE + 02		; Sector count (R/W)
+CFLBA0	EQU	CFBASE + 03		; LBA bits 0-7 (R/W, LBA mode)
+CFLBA1	EQU	CFBASE + 04		; LBA bits 8-15 (R/W, LBA mode)
+CFLBA2	EQU	CFBASE + 05		; LBA bits 16-23 (R/W, LBA mode)
+CFLBA3	EQU	CFBASE + 06		; LBA bits 24-27 (R/W, LBA mode)
+CFSTAT	EQU	CFBASE + 07		; Status (R)
+CFCMD	EQU	CFBASE + 07		; Command (W)
 
 FEATURE_8_BIT		EQU	1
 ATA_CMD_SET_FEAT	EQU	0EFh
+
+IDE_IDNT_MODEL_NUMBER	EQU	036H		; MODEL NUMBER (40 CHARS LONG)
+IDE_IDNT_SECTOR_COUNT	EQU	114		; 32 UNSIGNED INT
+
+LD_IXSP	MACRO
+	LD	IX, 0
+	ADD	IX, SP
+	ENDM
+
+AL_HLSP	MACRO	BYTE_COUNT
+	LD	HL, 0-BYTE_COUNT
+	ADD	HL, SP
+	LD	SP, HL
+	ENDM
+
+LD_HLSP	MACRO	OFFSET
+	LD	HL, OFFSET
+	ADD	HL, SP
+	ENDM
+
+LD_HLIX	MACRO	OFFSET
+	PUSH	IX
+	POP	HL
+	ADD	HL, OFFSET
+	ENDM
 
 ; RETURNS Z IF NOT PRESENT
 ; RETURNS NZ IF PRESENT
@@ -51,30 +76,18 @@ DEV_WRT_CF:
 
 
 DEV_INFO_CF_FLDS:
-	; SAVE SP IN XP
 	PUSH	IX
-	LD	IX, 0
-	ADD	IX, SP
+	LD_IXSP
 
-	; SAVE HL
-	EX	DE, HL
+	EX	DE, HL		; PLACE DESTINATION PTR INTO DE
+	EX	AF, AF'		; SAVE A
 
-	; RESERVE 512 BYTES FOR IDENTITY INFO
-	LD	HL, -512
-	ADD	HL, SP
-	LD	SP, HL
-
-	EX	AF, AF'
+	AL_HLSP	512
 	CALL	CF_READ_IDENT
 
-	; HL MODEL NUMBER (40 CHARS LONG)
-	LD	HL, 036H
-	ADD	HL, SP
-
-	EX	AF, AF'
-	EX	DE, HL		; RESTORE HL
-	; DE REFERENCES MODEL NUMBER
-	; HL IS RETURN BUFFER
+	EX	AF, AF'		; RESTORE A
+	; HL REFERENCES MODEL NUMBER
+	; DE IS RETURN BUFFER PTR
 
 	CP	1
 	JR	Z, DEV_INFO_CF_MAN
@@ -94,7 +107,7 @@ DEV_INFO_CF_END:
 	RET
 
 DEV_INFO_CF_MAN:
-	EX	DE, HL
+	LD_HLSP	+IDE_IDNT_MODEL_NUMBER
 	LD	BC, 40
 	LDIR
 	LD	B, 64-40
@@ -102,7 +115,6 @@ DEV_INFO_CF_MAN:
 	JR	DEV_INFO_CF_END
 
 DEV_INFO_CF_NAME:
-	EX	DE, HL
 	LD	HL, CF_DRV_NAME
 	LD	BC, CF_DRV_NAME_LEN
 	LDIR
@@ -111,6 +123,9 @@ DEV_INFO_CF_NAME:
 	JR	DEV_INFO_CF_END
 
 DEV_INFO_CF_SERIAL:
+	; LD_HLSP	+IDE_IDNT_SERIAL_NUMBER
+
+	EX	DE, HL
 	LD	BC, 63
 	ADD	HL, BC
 
@@ -127,6 +142,18 @@ LUN_INFO_CF:
 	CP	1
 	JR	NZ, LUN_INFO_CF_INVALID
 
+	PUSH	IX
+	EX	DE, HL
+	LD_IXSP
+	AL_HLSP	512
+	LD_HLSP	+IDE_IDNT_SECTOR_COUNT
+	EX	DE, HL
+	LD	SP, IX			; RESTORE SP
+	POP	IX
+
+	; HL IS PTR TO RETURN BUFFER
+	; DE IS PTR TO SECTOR COUNT
+
 	LD	A, 0			; standard block device
 	LD	(HL), 0
 	INC	HL
@@ -136,16 +163,12 @@ LUN_INFO_CF:
 	LD	(HL), 2
 	INC	HL
 
-	LD	(HL), 0			; total sector count
-	INC	HL
-	LD	(HL), 0
-	INC	HL
-	LD	(HL), 0
-	INC	HL
-	LD	(HL), 0
-	INC	HL
+	EX	DE, HL			; COPY SECTOR COUNT 32BIT VALUE
+	LD	BC, 4
+	LDIR
+	EX	DE, HL
 
-	LD	(HL), 1			; read only
+	LD	(HL), 0			; writable
 	INC	HL
 
 	LD	(HL), 0			; cyclinders
@@ -185,10 +208,10 @@ CF_PROBE:
 
 CF_INIT:
 	CALL	CF_WAIT_BUSY
-	LD	A, FEATURE_8_BIT						; ENABLE 8 BIT MODE FEATURE
+	LD	A, FEATURE_8_BIT			; ENABLE 8 BIT MODE FEATURE
 	OUT	(CFFEAT), A
 	CALL	CF_WAIT_BUSY
-	LD	A, ATA_CMD_SET_FEAT						; SEND FEATURE COMMAND
+	LD	A, ATA_CMD_SET_FEAT			; SEND FEATURE COMMAND
 	OUT	(CFCMD), A
 	; JR	CF_WAIT_BUSY
 
@@ -198,9 +221,9 @@ CF_INIT:
 ;***************************************************************************
 
 CF_WAIT_BUSY:
-	IN		A, (CFSTAT)				; READ STATUS
-	AND		080h					; MASK BUSY BIT
-	JR		NZ, CF_WAIT_BUSY			; LOOP UNTIL BUSY(7) IS 0
+	IN	A, (CFSTAT)				; READ STATUS
+	AND	080h				; MASK BUSY BIT
+	JR	NZ, CF_WAIT_BUSY			; LOOP UNTIL BUSY(7) IS 0
 	RET
 
 ;***************************************************************************
@@ -208,10 +231,10 @@ CF_WAIT_BUSY:
 ;Function: Loops until status register bit 7 (busy) is 0 and drvrdy(6) is 1
 ;***************************************************************************
 CF_WAIT_CMD_RDY:
-	IN		A, (CFSTAT)					;Read status
-	AND		0C0H						; %11000000 mask off busy and rdy bits
-	XOR		040H						; %01000000 we want busy(7) to be 0 and drvrdy(6) to be 1
-	JR		NZ, CF_WAIT_CMD_RDY
+	IN	A, (CFSTAT)					;Read status
+	AND	0C0H					; %11000000 mask off busy and rdy bits
+	XOR	040H					; %01000000 we want busy(7) to be 0 and drvrdy(6) to be 1
+	JR	NZ, CF_WAIT_CMD_RDY
 	RET
 
 ;***************************************************************************
@@ -219,19 +242,19 @@ CF_WAIT_CMD_RDY:
 ;Function: Loops until status register bit 7 (busy) is 0 and drq(3) is 1
 ;***************************************************************************
 CF_WAIT_DAT_RDY:
-	IN		A,(CFSTAT)					;Read status
-	AND		088H						; %10001000 mask off busy and drq bits
-	XOR		008H						; %00001000 we want busy(7) to be 0 and drq(3) to be 1
-	JR		NZ, CF_WAIT_DAT_RDY
+	IN	A,(CFSTAT)					;Read status
+	AND	088H					; %10001000 mask off busy and drq bits
+	XOR	008H					; %00001000 we want busy(7) to be 0 and drq(3) to be 1
+	JR	NZ, CF_WAIT_DAT_RDY
 	RET
 
 CF_READ_IDENT:
 	CALL	CF_WAIT_CMD_RDY
 
-	LD	A, 0E0H						; SELECT MASTER DRIVE
+	LD	A, 0E0H					; SELECT MASTER DRIVE
 	OUT 	(CFLBA3),A					;
 
-	LD	A, 0ECH						; identity command
+	LD	A, 0ECH					; identity command
 	OUT	(CFCMD), A
 
 	LD	B, 0
@@ -246,17 +269,17 @@ loop:
 ;Function: Gets a sector (512 bytes) into RAM buffer.
 ;***************************************************************************
 CF_RD_CMD:
-	CALL	CF_WAIT_CMD_RDY				;Make sure drive is ready for command
-	LD	A, 020H					;Prepare read command
+	CALL	CF_WAIT_CMD_RDY			;Make sure drive is ready for command
+	LD	A, 020H				;Prepare read command
 	OUT	(CFCMD), A				;Send read command
-	CALL	CF_WAIT_DAT_RDY				;Wait until data is ready to be read
+	CALL	CF_WAIT_DAT_RDY			;Wait until data is ready to be read
 
 	IN	A, (CFSTAT)				;Read status
-	AND	01H					;mask off error bit
-	JR	NZ, CF_RD_CMD				;Try again if error
+	AND	01H				;mask off error bit
+	JR	NZ, CF_RD_CMD			;Try again if error
 
 CF_REDDAT:						; READ sector into HL
-	LD 	B, 0					;read 256 words (512 bytes per sector)
+	LD 	B, 0				;read 256 words (512 bytes per sector)
 CF_RD_SECT:
 	CALL	CF_WAIT_DAT_RDY
 	IN 	A, (CFDATA)				;get byte of ide data
@@ -272,7 +295,7 @@ CF_RD_SECT:
 
 
 CF_NOT_FOUND_MSG:	DB	"Compact Flash Module:", 9, "NOT PRESENT", 13, 10, 0
-CF_FOUND_MSG:		DB	"Compact Flash Module:", 9, "PRESENT", 13, 10, 0
+CF_FOUND_MSG:	DB	"Compact Flash Module:", 9, "PRESENT", 13, 10, 0
 
-CF_DRV_NAME:		DB	"IDE/CompactFlash"
-CF_DRV_NAME_LEN		EQU	$-CF_DRV_NAME
+CF_DRV_NAME:	DB	"IDE/CompactFlash"
+CF_DRV_NAME_LEN	EQU	$-CF_DRV_NAME
