@@ -19,14 +19,14 @@ CFLBA3	EQU	CFBASE + 06		; LBA bits 24-27 (R/W, LBA mode)
 CFSTAT	EQU	CFBASE + 07		; Status (R)
 CFCMD	EQU	CFBASE + 07		; Command (W)
 
-FEATURE_8_BIT		EQU	1
+FEATURE_8_BIT	EQU	1
 ATA_CMD_SET_FEAT	EQU	0EFh
 
 IDE_IDNT_MODEL_NUMBER	EQU	036H		; MODEL NUMBER (40 CHARS LONG)
 IDE_IDNT_SECTOR_COUNT	EQU	114		; 32 UNSIGNED INT
 
 WAIT_OUTER	EQU	0
-WAIT_INNER	EQU	4000
+WAIT_INNER	EQU	100
 
 LD_IXSP	MACRO
 	LD	IX, 0
@@ -104,21 +104,25 @@ DEV_READ_CF:
 	OUT 	(CFSECCO), A
 	CALL 	CF_WAIT_BUSY
 	JR	NZ, DEV_READ_CF_ERR
+
 	LD	A, (DE)
 	INC	DE
 	OUT	(CFLBA0), A			;LBA 0:7
 	CALL 	CF_WAIT_BUSY
 	JR	NZ, DEV_READ_CF_ERR
+
 	LD	A, (DE)
 	INC	DE
 	OUT	(CFLBA1),A			;LBA 8:15
 	CALL 	CF_WAIT_BUSY
 	JR	NZ, DEV_READ_CF_ERR
+
 	LD	A, (DE)
 	INC	DE
 	OUT 	(CFLBA2),A			;LBA 16:23
 	CALL 	CF_WAIT_BUSY
 	JR	NZ, DEV_READ_CF_ERR
+
 	LD	A, (DE)
 	AND	00FH			; LBA 24:27 + DRV 0 selected + bits 5:7=111
 	OR	0E0H			; SELECT MASTER DRIVE
@@ -141,7 +145,6 @@ DEV_WRT_CF:
 DEV_READ_CF_ERR:
 	LD	B, 0
 	RET
-
 
 DEV_INFO_CF_FLDS:
 	PUSH	IX
@@ -372,7 +375,9 @@ CF_WAIT_DAT_RDY1:
 	LD	DE, WAIT_INNER
 
 CF_WAIT_DAT_RDY2:
-	IN	A,(CFSTAT)					;Read status
+	IN	A,(CFSTAT)
+	BIT	0, A
+	JR	NZ, CF_WAIT_DAT_RDY_ERR				; RETURN ERROR status
 	AND	088H					; %10001000 mask off busy and drq bits
 	XOR	008H					; %00001000 we want busy(7) to be 0 and drq(3) to be 1
 	JR	Z, CF_WAIT_DAT_RDY9
@@ -390,6 +395,16 @@ CF_WAIT_DAT_RDY9:
 	POP	DE
 	POP	BC
 	RET
+
+CF_WAIT_DAT_RDY_ERR:
+	POP	DE
+	POP	BC
+
+CF_ERROR:			; TODO TRANSLATE TO CORRECT MSX-DOS ERROR CODES
+	IN	A, (CFERR)
+	OR	A
+	RET
+
 
 CF_READ_IDENT:
 	CALL	CF_WAIT_CMD_RDY
@@ -415,33 +430,40 @@ CF_READ_IDENT_ERR:
 	RET
 
 
+
+
 ;***************************************************************************
 ;CF_RD_CMD
 ;Function: Gets a sector (512 bytes) into RAM buffer.
+; number of sectors to read in B
+; destorys B and C
 ;***************************************************************************
 CF_RD_CMD:
 	CALL	CF_WAIT_CMD_RDY
-	RET	NZ		;Make sure drive is ready for command
+	JR	NZ, CF_RD_CMD_ERR		;Make sure drive is ready for command
+
 	LD	A, 020H				;Prepare read command
 	OUT	(CFCMD), A				;Send read command
 	CALL	CF_WAIT_DAT_RDY			;Wait until data is ready to be read
-	RET	NZ
+	JR	NZ, CF_RD_CMD_ERR		;Make sure drive is ready for command
 
 	IN	A, (CFSTAT)				;Read status
 	AND	01H				;mask off error bit
-	RET	NZ				;return NZ if error
+	JR	NZ, CF_ERROR			;return NZ if error
 
 	LD	C, B				; number of sectors to read
 CF_REDDAT:						; READ sector into HL
 	LD 	B, 0				; read 256 words (512 bytes per sector)
 CF_RD_SECT:
 	CALL	CF_WAIT_DAT_RDY
-	RET	NZ
+	JR	NZ, CF_RD_CMD_ERR		;Make sure drive is ready for command
+
 	IN 	A, (CFDATA)				; get byte of ide data
 	LD 	(HL), A
 	INC 	HL
 	CALL	CF_WAIT_DAT_RDY
-	RET	NZ
+	JR	NZ, CF_RD_CMD_ERR		;Make sure drive is ready for command
+
 	IN 	A, (CFDATA)				; get byte of ide data
 	LD 	(HL), A
 	INC 	HL
@@ -453,6 +475,9 @@ CF_RD_SECT:
 	XOR	A
 	RET
 
+CF_RD_CMD_ERR:
+	LD	B, 0
+	RET
 
 
 CF_NOT_FOUND_MSG:	DB	"Compact Flash Module:", 9, "NOT PRESENT", 13, 10, 0
