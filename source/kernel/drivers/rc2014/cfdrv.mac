@@ -25,6 +25,9 @@ ATA_CMD_SET_FEAT	EQU	0EFh
 IDE_IDNT_MODEL_NUMBER	EQU	036H		; MODEL NUMBER (40 CHARS LONG)
 IDE_IDNT_SECTOR_COUNT	EQU	114		; 32 UNSIGNED INT
 
+WAIT_OUTER	EQU	0
+WAIT_INNER	EQU	4000
+
 LD_IXSP	MACRO
 	LD	IX, 0
 	ADD	IX, SP
@@ -54,16 +57,19 @@ DRV_INIT_CF:
 	CALL	CF_PROBE
 	JR	Z, CF_FOUND
 
+CF_NOT_FOUND:
 	LD	DE, CF_NOT_FOUND_MSG
 	CALL	PRINT
 	XOR	A
 	RET
 
 CF_FOUND:
+	CALL	CF_INIT
+	JR	NZ, CF_NOT_FOUND
+
 	LD	DE, CF_FOUND_MSG
 	CALL	PRINT
 
-	CALL	CF_INIT
 	OR	255
 	RET
 
@@ -91,40 +97,48 @@ CF_FOUND:
 ;          B = Number of sectors actually read (in case of error only)
 DEV_READ_CF:
 	CALL 	CF_WAIT_BUSY
-
+	JR	NZ, DEV_READ_CF_ERR
 	LD 	A, B			; STORE SECTOR COUNT
 	LD	C, A
 
 	OUT 	(CFSECCO), A
 	CALL 	CF_WAIT_BUSY
+	JR	NZ, DEV_READ_CF_ERR
 	LD	A, (DE)
 	INC	DE
 	OUT	(CFLBA0), A			;LBA 0:7
 	CALL 	CF_WAIT_BUSY
+	JR	NZ, DEV_READ_CF_ERR
 	LD	A, (DE)
 	INC	DE
 	OUT	(CFLBA1),A			;LBA 8:15
 	CALL 	CF_WAIT_BUSY
+	JR	NZ, DEV_READ_CF_ERR
 	LD	A, (DE)
 	INC	DE
 	OUT 	(CFLBA2),A			;LBA 16:23
 	CALL 	CF_WAIT_BUSY
+	JR	NZ, DEV_READ_CF_ERR
 	LD	A, (DE)
 	AND	00FH			; LBA 24:27 + DRV 0 selected + bits 5:7=111
 	OR	0E0H			; SELECT MASTER DRIVE
 	OUT 	(CFLBA3), A
 	CALL 	CF_WAIT_BUSY
+	JR	NZ, DEV_READ_CF_ERR
 
 	PUSH	BC			; SAVE SECTOR COUNT (C)
 	CALL	CF_RD_CMD
 	POP	BC			; RESTORE SECTOR COUNT
+	JR	NZ, DEV_READ_CF_ERR
 
-	XOR	A
+	; RETURN Z/NZ OF CF_RD_CMD
+	; TODO RETURN CORRECT B VALUE FOR ERR CONDITION
 	LD	B, C
 	RET
 
 DEV_WRT_CF:
 	LD	A, .WRERR
+DEV_READ_CF_ERR:
 	LD	B, 0
 	RET
 
@@ -271,12 +285,15 @@ CF_PROBE:
 
 CF_INIT:
 	CALL	CF_WAIT_BUSY
+	RET	NZ
 	LD	A, FEATURE_8_BIT			; ENABLE 8 BIT MODE FEATURE
 	OUT	(CFFEAT), A
 	CALL	CF_WAIT_BUSY
+	RET	NZ
 	LD	A, ATA_CMD_SET_FEAT			; SEND FEATURE COMMAND
 	OUT	(CFCMD), A
-	; JR	CF_WAIT_BUSY
+
+	; FALL THRU TO CF_WAIT_BUSY
 
 ;***************************************************************************
 ; CF_WAIT_BUSY
@@ -284,9 +301,30 @@ CF_INIT:
 ;***************************************************************************
 
 CF_WAIT_BUSY:
+	PUSH	BC
+	PUSH	DE
+	LD	B, WAIT_OUTER
+
+CF_WAIT_BUSY1:
+	LD	DE, WAIT_INNER
+
+CF_WAIT_BUSY2:
 	IN	A, (CFSTAT)				; READ STATUS
 	AND	080h				; MASK BUSY BIT
-	JR	NZ, CF_WAIT_BUSY			; LOOP UNTIL BUSY(7) IS 0
+	JR	Z, CF_WAIT_BUSY9			; RETURN A == 0, Z
+
+	DEC	DE
+	LD	A, D
+	OR	E
+	JR	NZ, CF_WAIT_BUSY2
+	DJNZ	CF_WAIT_BUSY1
+
+	XOR	A				; RETURN A=.DISK, NZ
+	OR	.DISK
+
+CF_WAIT_BUSY9:
+	POP	DE
+	POP	BC
 	RET
 
 ;***************************************************************************
@@ -294,10 +332,31 @@ CF_WAIT_BUSY:
 ;Function: Loops until status register bit 7 (busy) is 0 and drvrdy(6) is 1
 ;***************************************************************************
 CF_WAIT_CMD_RDY:
+	PUSH	BC
+	PUSH	DE
+	LD	B, WAIT_OUTER
+
+CF_WAIT_CMD_RDY1:
+	LD	DE, WAIT_INNER
+
+CF_WAIT_CMD_RDY2:
 	IN	A, (CFSTAT)					;Read status
 	AND	0C0H					; %11000000 mask off busy and rdy bits
 	XOR	040H					; %01000000 we want busy(7) to be 0 and drvrdy(6) to be 1
-	JR	NZ, CF_WAIT_CMD_RDY
+	JR	Z, CF_WAIT_CMD_RDY9
+
+	DEC	DE
+	LD	A, D
+	OR	E
+	JR	NZ, CF_WAIT_CMD_RDY2
+	DJNZ	CF_WAIT_CMD_RDY1
+
+	XOR	A
+	OR	.DISK
+
+CF_WAIT_CMD_RDY9:
+	POP	DE
+	POP	BC
 	RET
 
 ;***************************************************************************
@@ -305,14 +364,36 @@ CF_WAIT_CMD_RDY:
 ;Function: Loops until status register bit 7 (busy) is 0 and drq(3) is 1
 ;***************************************************************************
 CF_WAIT_DAT_RDY:
+	PUSH	BC
+	PUSH	DE
+	LD	B, WAIT_OUTER
+
+CF_WAIT_DAT_RDY1:
+	LD	DE, WAIT_INNER
+
+CF_WAIT_DAT_RDY2:
 	IN	A,(CFSTAT)					;Read status
 	AND	088H					; %10001000 mask off busy and drq bits
 	XOR	008H					; %00001000 we want busy(7) to be 0 and drq(3) to be 1
-	JR	NZ, CF_WAIT_DAT_RDY
+	JR	Z, CF_WAIT_DAT_RDY9
+
+	DEC	DE
+	LD	A, D
+	OR	E
+	JR	NZ, CF_WAIT_DAT_RDY2
+	DJNZ	CF_WAIT_DAT_RDY1
+
+	XOR	A
+	OR	.DISK
+
+CF_WAIT_DAT_RDY9:
+	POP	DE
+	POP	BC
 	RET
 
 CF_READ_IDENT:
 	CALL	CF_WAIT_CMD_RDY
+	JR	NZ, CF_READ_IDENT_ERR
 
 	LD	A, 0E0H					; SELECT MASTER DRIVE
 	OUT 	(CFLBA3),A					;
@@ -324,7 +405,14 @@ CF_READ_IDENT:
 loop:	djnz	loop
 	; //TODO CHECK ERROR
 	LD	C, 1					; READ 1 SECTOR
-	JR	CF_REDDAT
+	CALL	CF_REDDAT
+	JR	NZ, CF_READ_IDENT_ERR
+
+	XOR	A
+	RET
+
+CF_READ_IDENT_ERR:
+	RET
 
 
 ;***************************************************************************
@@ -332,24 +420,28 @@ loop:	djnz	loop
 ;Function: Gets a sector (512 bytes) into RAM buffer.
 ;***************************************************************************
 CF_RD_CMD:
-	CALL	CF_WAIT_CMD_RDY			;Make sure drive is ready for command
+	CALL	CF_WAIT_CMD_RDY
+	RET	NZ		;Make sure drive is ready for command
 	LD	A, 020H				;Prepare read command
 	OUT	(CFCMD), A				;Send read command
 	CALL	CF_WAIT_DAT_RDY			;Wait until data is ready to be read
+	RET	NZ
 
 	IN	A, (CFSTAT)				;Read status
 	AND	01H				;mask off error bit
-	JR	NZ, CF_RD_CMD			;Try again if error
+	RET	NZ				;return NZ if error
 
 	LD	C, B				; number of sectors to read
 CF_REDDAT:						; READ sector into HL
 	LD 	B, 0				; read 256 words (512 bytes per sector)
 CF_RD_SECT:
 	CALL	CF_WAIT_DAT_RDY
+	RET	NZ
 	IN 	A, (CFDATA)				; get byte of ide data
 	LD 	(HL), A
 	INC 	HL
 	CALL	CF_WAIT_DAT_RDY
+	RET	NZ
 	IN 	A, (CFDATA)				; get byte of ide data
 	LD 	(HL), A
 	INC 	HL
@@ -357,6 +449,8 @@ CF_RD_SECT:
 
 	DEC	C
 	JR	NZ, CF_REDDAT
+
+	XOR	A
 	RET
 
 
