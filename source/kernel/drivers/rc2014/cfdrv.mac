@@ -97,53 +97,97 @@ CF_FOUND:
 ;          B = Number of sectors actually read (in case of error only)
 DEV_READ_CF:
 	CALL 	CF_WAIT_BUSY
-	JR	NZ, DEV_READ_CF_ERR
+	JR	NZ, DEV_RW_CF_ERR
 	LD 	A, B			; STORE SECTOR COUNT
 	LD	C, A
 
 	OUT 	(CFSECCO), A
 	CALL 	CF_WAIT_BUSY
-	JR	NZ, DEV_READ_CF_ERR
+	JR	NZ, DEV_RW_CF_ERR
 
 	LD	A, (DE)
 	INC	DE
 	OUT	(CFLBA0), A			;LBA 0:7
 	CALL 	CF_WAIT_BUSY
-	JR	NZ, DEV_READ_CF_ERR
+	JR	NZ, DEV_RW_CF_ERR
 
 	LD	A, (DE)
 	INC	DE
 	OUT	(CFLBA1),A			;LBA 8:15
 	CALL 	CF_WAIT_BUSY
-	JR	NZ, DEV_READ_CF_ERR
+	JR	NZ, DEV_RW_CF_ERR
 
 	LD	A, (DE)
 	INC	DE
 	OUT 	(CFLBA2),A			;LBA 16:23
 	CALL 	CF_WAIT_BUSY
-	JR	NZ, DEV_READ_CF_ERR
+	JR	NZ, DEV_RW_CF_ERR
 
 	LD	A, (DE)
 	AND	00FH			; LBA 24:27 + DRV 0 selected + bits 5:7=111
 	OR	0E0H			; SELECT MASTER DRIVE
 	OUT 	(CFLBA3), A
 	CALL 	CF_WAIT_BUSY
-	JR	NZ, DEV_READ_CF_ERR
+	JR	NZ, DEV_RW_CF_ERR
 
 	PUSH	BC			; SAVE SECTOR COUNT (C)
 	CALL	CF_RD_CMD
 	POP	BC			; RESTORE SECTOR COUNT
-	JR	NZ, DEV_READ_CF_ERR
+	JR	NZ, DEV_RW_CF_ERR
 
 	; RETURN Z/NZ OF CF_RD_CMD
 	; TODO RETURN CORRECT B VALUE FOR ERR CONDITION
 	LD	B, C
 	RET
 
-DEV_WRT_CF:
-	LD	A, .WRERR
-DEV_READ_CF_ERR:
+DEV_RW_CF_ERR:
 	LD	B, 0
+	RET
+
+
+DEV_WRT_CF:
+	CALL 	CF_WAIT_BUSY
+	JR	NZ, DEV_RW_CF_ERR
+	LD 	A, B			; STORE SECTOR COUNT
+	LD	C, A
+
+	OUT 	(CFSECCO), A
+	CALL 	CF_WAIT_BUSY
+	JR	NZ, DEV_RW_CF_ERR
+
+	LD	A, (DE)
+	INC	DE
+	OUT	(CFLBA0), A			;LBA 0:7
+	CALL 	CF_WAIT_BUSY
+	JR	NZ, DEV_RW_CF_ERR
+
+	LD	A, (DE)
+	INC	DE
+	OUT	(CFLBA1),A			;LBA 8:15
+	CALL 	CF_WAIT_BUSY
+	JR	NZ, DEV_RW_CF_ERR
+
+	LD	A, (DE)
+	INC	DE
+	OUT 	(CFLBA2),A			;LBA 16:23
+	CALL 	CF_WAIT_BUSY
+	JR	NZ, DEV_RW_CF_ERR
+
+	LD	A, (DE)
+	AND	00FH			; LBA 24:27 + DRV 0 selected + bits 5:7=111
+	OR	0E0H			; SELECT MASTER DRIVE
+	OUT 	(CFLBA3), A
+	CALL 	CF_WAIT_BUSY
+	JR	NZ, DEV_RW_CF_ERR
+
+	PUSH	BC			; SAVE SECTOR COUNT (C)
+	CALL	CF_WR_CMD
+	POP	BC			; RESTORE SECTOR COUNT
+	JR	NZ, DEV_RW_CF_ERR
+
+	; RETURN Z/NZ OF CF_RD_CMD
+	; TODO RETURN CORRECT B VALUE FOR ERR CONDITION
+	LD	B, C
 	RET
 
 DEV_INFO_CF_FLDS:
@@ -238,14 +282,6 @@ LUN_INFO_CF:
 	LD	BC, 4
 	LDIR
 	EX	DE, HL
-
-	DEC	HL			; RESERVE SPACE AT START
-	DEC	HL
-	LD	A, (HL)
-	DEC	A
-	LD	(HL), A
-	INC	HL
-	INC	HL
 
 	LD	(HL), 0			; writable
 	INC	HL
@@ -440,12 +476,12 @@ CF_READ_IDENT_ERR:
 ;***************************************************************************
 CF_RD_CMD:
 	CALL	CF_WAIT_CMD_RDY
-	JR	NZ, CF_RD_CMD_ERR		;Make sure drive is ready for command
+	JR	NZ, CF_RW_CMD_ERR		;Make sure drive is ready for command
 
 	LD	A, 020H				;Prepare read command
 	OUT	(CFCMD), A				;Send read command
 	CALL	CF_WAIT_DAT_RDY			;Wait until data is ready to be read
-	JR	NZ, CF_RD_CMD_ERR		;Make sure drive is ready for command
+	JR	NZ, CF_RW_CMD_ERR		;Make sure drive is ready for command
 
 	IN	A, (CFSTAT)				;Read status
 	AND	01H				;mask off error bit
@@ -456,13 +492,13 @@ CF_REDDAT:						; READ sector into HL
 	LD 	B, 0				; read 256 words (512 bytes per sector)
 CF_RD_SECT:
 	CALL	CF_WAIT_DAT_RDY
-	JR	NZ, CF_RD_CMD_ERR		;Make sure drive is ready for command
+	JR	NZ, CF_RW_CMD_ERR		;Make sure drive is ready for command
 
 	IN 	A, (CFDATA)				; get byte of ide data
 	LD 	(HL), A
 	INC 	HL
 	CALL	CF_WAIT_DAT_RDY
-	JR	NZ, CF_RD_CMD_ERR		;Make sure drive is ready for command
+	JR	NZ, CF_RW_CMD_ERR		;Make sure drive is ready for command
 
 	IN 	A, (CFDATA)				; get byte of ide data
 	LD 	(HL), A
@@ -475,8 +511,51 @@ CF_RD_SECT:
 	XOR	A
 	RET
 
-CF_RD_CMD_ERR:
+CF_RW_CMD_ERR:
 	LD	B, 0
+	RET
+
+;***************************************************************************
+;CF_WR_CMD
+;Function: Writes a sector (512 bytes) from RAM buffer.
+; number of sectors to read in B
+; destorys B and C
+;***************************************************************************
+CF_WR_CMD:
+	CALL	CF_WAIT_CMD_RDY		;Make sure drive is ready for command
+	JR	NZ, CF_RW_CMD_ERR		;Make sure drive is ready for command
+
+	LD	A, 030H			;Prepare write command
+	OUT	(CFCMD), A			;Send read command
+	CALL	CF_WAIT_DAT_RDY		;Wait until data is ready to be read
+	JR	NZ, CF_RW_CMD_ERR		;Make sure drive is ready for command
+
+	IN	A, (CFSTAT)			;Read status
+	AND	01H			;mask off error bit
+	JR	NZ, CF_ERROR		;return if error
+
+	LD	C, B
+CF_WRTDAT:
+	LD 	B, 0			;write 256 words (512 bytes per sector)
+CF_WR_SECT:
+	CALL	CF_WAIT_DAT_RDY
+	JR	NZ, CF_RW_CMD_ERR		;Make sure drive is ready for command
+
+	LD	A, (HL)
+	OUT 	(CFDATA), A			;set byte of ide data
+	INC 	HL
+	CALL	CF_WAIT_DAT_RDY
+	JR	NZ, CF_RW_CMD_ERR		;Make sure drive is ready for command
+
+	LD	A, (HL)
+	OUT 	(CFDATA), A			;set byte of ide data
+	INC 	HL
+	DJNZ 	CF_WR_SECT
+
+	DEC	C
+	JR	NZ, CF_WRTDAT
+
+	XOR	A
 	RET
 
 
