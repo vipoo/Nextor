@@ -1090,6 +1090,32 @@ BOTTOM_OK:
 	sbc	hl,de	;HL = -DE
 	add	hl,sp
 
+
+	push	hl
+
+;	set default screen size
+;
+	ld	hl,PRTTTL+7		;get higher address of INIT??
+	ld	a,(EXPTBL##)
+	call	RDSLT
+	push	af		;save it
+	inc	sp
+	dec	hl		;get lower address of INIT??
+	ld	a,(EXPTBL##)
+	call	RDSLT
+	push	af
+	inc	sp
+	pop	ix		;set address
+	ld	iy,(EXPTBL##-1)	;load expanded flag to [IYH]
+
+	ld	hl, 0F3AEH
+	Ld	(hl), 79
+	ld	hl, 0f3b0h
+	Ld	(hl), 79
+	call	CALSLT		;set default screen size
+
+	pop	hl
+
 	xor	a
 	call	CALL_DV_INIT
 	push	af
@@ -1545,22 +1571,6 @@ OKDOSINIT:
 ;	Prepare for disk BASIC
 ;
 	call	SETHOOKS##	;set up hooks for disk BASIC
-;
-;	set default screen size
-;
-	ld	hl,PRTTTL+7	;get higher address of INIT??
-	ld	a,(EXPTBL##)
-	call	RDSLT
-	push	af		;save it
-	inc	sp
-	dec	hl		;get lower address of INIT??
-	ld	a,(EXPTBL##)
-	call	RDSLT
-	push	af
-	inc	sp
-	pop	ix		;set address
-	ld	iy,(EXPTBL##-1)	;load expanded flag to [IYH]
-	call	CALSLT		;set default screen size
 ;
 	call	PBAS_HOOK
 ;

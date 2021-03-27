@@ -16,7 +16,6 @@ echo -e "L80\r\n${@:2}\r\nbye"  | \
     cpm 2>&1 | \
     tee ${outfile} | \
     grep --color=always -E "\?Out of memory|$" | \
-    grep --color=always -E "%Overlaying Data area|$" | \
     grep --color=always -E "\?.*+Not Found|$" | \
     grep --color=always -E "\?Loading Error|$" | \
     grep -v "Sorry, terminal not found, using cooked mode." | \
