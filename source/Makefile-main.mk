@@ -359,10 +359,10 @@ $(BLDDIR)rc2014-driver-with-sectors.bin: $(BLDDIR)rc2014dr.bin $(BLDDIR)rcembdrv
 	@cd $(BLDDIR)
 	SECSTRT=$$(getsymb.sh rcembdrv.sym SECSTR)
 	DATSIZ=$$(getsymb.sh rcembdrv.sym DATSIZ)
-	dd if=/dev/zero of=rc2014-driver-with-sectors.bin bs=16k count=20 seek=0
+	dd if=/dev/zero of=rc2014-driver-with-sectors.bin bs=16k count=19 seek=0
 	dd conv=notrunc if=rc2014dr.bin of=rc2014-driver-with-sectors.bin bs=8k count=1 seek=0
 	BNK_START_ADDR=$$((SECSTRT-16384))
-	for i in {1..19}
+	for i in {1..18}
 	do
 		BNK_ADDR=$$(($$BNK_START_ADDR + (16384*($$i))))
 		SKIP=$$(($$DATSIZ*($$i-1)))
@@ -394,7 +394,7 @@ $(BLDDIR)fdd.dsk: nextor.sys command2.com fixdisk.com chkdsk.com $(EXTRAS) $(TOO
 	DATSIZ=$$(getsymb.sh rcembdrv.sym DATSIZ)
 	sudo umount -df /media/fdddsk > /dev/null 2>&1 || true
 	rm -f fdd.dsk
-	dd if=/dev/zero of=fdd.dsk bs=$$(($$DATSIZ*19)) count=1
+	dd if=/dev/zero of=fdd.dsk bs=$$(($$DATSIZ*18)) count=1
 	mkfs.vfat -F 12 -f 1 fdd.dsk
 	sudo mkdir -p /media/fdddsk
 	sudo mount -t vfat fdd.dsk /media/fdddsk
