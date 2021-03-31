@@ -11,11 +11,14 @@
 
 ;-----------------------------------------------------------------------------
 ;
-; Standard BIOS and work area entries
+; STANDARD BIOS AND WORK AREA ENTRIES
 
-CHPUT	equ	00A2h	;Character output
-CHGET	equ	009Fh
+CHPUT			EQU	000A2H	; CHARACTER OUTPUT
+CHGET			EQU	0009FH	; CHARACTER INPUT
+MSXDOS_RC2014_ENTRY	EQU	08100H
 
+
+SLOT_3_3_ID		EQU	08FH;
 
 DRV_START:
 
@@ -228,13 +231,21 @@ DRV_NAME:
 ;    procedure will continue the normal way
 ;    (for drive-based drivers only. Device-based drivers always
 ;     get two allocated drives.)
+CALSLT	EQU	0001Ch
 
 DRV_INIT:
 	OR	A
 	JR	NZ, DRV_INIT2
 
+DRV_INIT1:
 	LD	DE, INFO_S
 	CALL	PRINT
+
+	; CALL EXTENDED ROM PAGE INIT
+	LD	IY, 08F00H       	;BIOS SLOT IN IYH (3-3)
+	LD	IX, MSXDOS_RC2014_ENTRY       	;ADDRESS OF BIOS ROUTINE
+	CALL	CALSLT              	;INTERSLOT CALL
+
 	CALL	DRV_INIT_CF
 
 	JR	Z, DRV_INIT2	; NOT PRESENT
@@ -243,9 +254,9 @@ DRV_INIT:
 	LD	A, PRES_CF
 	LD	(IX+ST_PRESENT), A
 
+DRV_INIT2:
 	;NOTE THAT CY IS 0 (NO INTERRUPT HOOKING NEEDED)
 
-DRV_INIT2:
 	XOR	A
 	LD	HL, 0
 	RET
@@ -900,7 +911,8 @@ no_rest:
 ;
 ; End of the driver code
 
-INFO_S:			DB	"RC2014 Disk Driver", 13, 10, 0
+INFO_S:			DB	"MSX ON RC2014", 13, 10
+			DB	"-------------", 13, 10, 0
 
 ROM_MAN:		DB	"Homebrew"
 ROM_MAN_LEN		EQU	$-ROM_MAN
