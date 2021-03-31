@@ -55,6 +55,10 @@ endif
 CHKBRN	equ	6EF4h
 PRTTTL	equ	7D29h
 ;
+
+LINL40 	EQU	0F3AEH
+LINLEN	EQU	0F3B0H
+
 RAMLOW	equ	0F380h		;Beginning of fixed work area for MSX
 if HYBRID
 USRTAB	equ	0F39Ah		;!=FCERR ==> ROM appl. /w MSX-DOS2
@@ -1108,10 +1112,10 @@ BOTTOM_OK:
 	pop	ix		;set address
 	ld	iy,(EXPTBL##-1)	;load expanded flag to [IYH]
 
-	ld	hl, 0F3AEH
-	Ld	(hl), 79
-	ld	hl, 0f3b0h
-	Ld	(hl), 79
+	ld	hl, LINL40; 0F3AEH
+	Ld	(hl), 80
+	ld	hl, LINLEN	;0f3b0h
+	Ld	(hl), 80
 	call	CALSLT		;set default screen size
 
 	pop	hl

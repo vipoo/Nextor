@@ -559,8 +559,12 @@ CF_WR_SECT:
 	RET
 
 
-CF_NOT_FOUND_MSG:	DB	"Compact Flash Module:", 9, "NOT PRESENT", 13, 10, 0
-CF_FOUND_MSG:	DB	"Compact Flash Module:", 9, "PRESENT", 13, 10, 0
+CF_NOT_FOUND_MSG:
+	DB	"Compact Flash Module:", 9, "NOT PRESENT", 13, 10, 0
+CF_FOUND_MSG:
+	DB	"Compact Flash Module:", 9, "PRESENT", 13, 10, 0
 
-CF_DRV_NAME:	DB	"IDE/CompactFlash"
+CF_DRV_NAME:
+	DB	"IDE/CompactFlash"
+
 CF_DRV_NAME_LEN	EQU	$-CF_DRV_NAME
