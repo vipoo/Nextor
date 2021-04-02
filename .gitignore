@@ -56,4 +56,3 @@ linuxtools/prereq
 linuxtools/mknexrom
 
 extras/*
-!extras/AUTOEXEC.BAT
