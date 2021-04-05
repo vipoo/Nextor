@@ -39,7 +39,7 @@ MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 # MAKEFLAGS += -j
 
-export VERSION=2.1.1-alpha2
+export VERSION=2.1.1
 
 export PATH := $(PWD)/../linuxtools/:$(PWD)/../linuxtools/prereq/sdcc-4.0.0/bin/:$(PWD)/../linuxtools/prereq/hex2bin/:$(PWD)/../linuxtools/prereq/cpm:$(PATH)
 
