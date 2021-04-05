@@ -1,0 +1,190 @@
+
+RS232_ID		EQU	8
+GET_INFO_TABLE_FN	EQU	0
+
+WRSLT			EQU	00014h
+GSLOT1			EQU	0402Dh
+CALBNK			EQU	04042h
+CHPUT			EQU	000A2H	; CHARACTER OUTPUT
+
+; SIO SETTINGS
+SIO0BASE	EQU	080h		; SIO BASE PORT
+SIO0A_DAT	EQU	SIO0BASE + 1	; DATA PORT
+SIO0A_CMD	EQU	SIO0BASE + 0	; CONTROL/STATUS PORT
+SIO0B_CMD	EQU	SIO0BASE + 2	; DATA PORT
+SIO0B_DAT	EQU	SIO0BASE + 3    ; CONTROL/STATUS PORT
+DAT_CH		EQU	SIO0B_DAT	; DRIVER CURRENTLY ONLY SUPPORTS CHANNEL B OF THE SIO/2
+CMD_CH		EQU	SIO0B_CMD
+SIO_WR1VAL	EQU	018h		; WR1 VALUE FOR INT ON RECEIVED CHARS
+SIO_RTSON	EQU	0EAh
+SIO_RTSOFF	EQU	0E8h
+
+	; ORG will be 07BD0h
+
+	PUBLIC	RS232_JUMP_TABLE
+
+RS232_JUMP_TABLE:
+	DEFB	0		; MSX serial features (no TxReady INT, No Sync detect, No Timer INT, No CD, No RI)
+	DEFB	1		; version number
+	DEFB	0		; reserved for future expansion
+	JP	INIT		; initialize RS232C port
+	JP	OPEN		; open RS232C port
+	JP	STAT		; ReaD STATus
+	JP	GETCHR		; reveive data
+	JP	SNDCHR		; send data
+	JP	CLOSE		; close RS232C port
+	JP	EOF		; tell EOF code received
+	JP	LOC		; reports number of characters in the
+				; receiver buffer
+	JP	LOF		; reports number of free space left in the
+				; receiver buffer
+	JP	BACKUP		; back up a character
+	JP	SNDBRK		; send break character
+	JP	DTR		; turn on/off DTR line
+	JP	SETCHN		; set channel number
+
+	PUBLIC	INIT
+INIT:				; initialize RS232C port
+	LD	BC, SIO_RTSOFF*256 + SIO0A_CMD
+	CALL	SIOINIT
+	LD	BC, SIO_RTSON*256 + SIO0B_CMD
+
+	; Install fossil driver as well???
+
+	; LD	A, 'R'
+	; LD	(FOSSIL_MARK_1), A
+	; LD	A, 'X'
+	; LD	(FOSSIL_MARK_2), A
+
+
+	; ; LD	HL, 21*3
+	; ; CALL	ALLOC
+	; LD	Hl, FOSSIL_JUMP_TABLE
+	; LD	(FOSSIL_JUMP_TABLE_REF), HL
+	; CALL	GETSL10
+	; LD	(FOSSIL_JUMP_TABLE_SLOT), A
+
+	LD	DE, MSG
+
+BDOSFN	MACRO	fn
+	LD	C, fn
+	CALL	BDOS
+	ENDM
+STROUT		EQU	9	; DE = Address of $ terminated string
+BDOS		EQU	5
+
+	BDOSFN	STROUT
+
+	XOR	A
+	RET
+
+
+MSG:	DB	"Are we inited yet.\r\n$", 0
+
+OPEN:		; open RS232C port
+	RET
+STAT:		; ReaD STATus
+	RET
+GETCHR:		; reveive data
+	RET
+
+;---------------------------------------------------------------------------------
+;        Entry:  [A] = character to send
+;        Return: carry flag is set if control break key was pressed
+;                zero flag is set if time out error occured during waiting for
+;                XON or/and CTS signal.
+;        Modify: [F]
+;
+;        Description:
+;         Send  specified character to RS232C port. The character flow control
+;         by XON/XOFF  characters and/or  CTS (Clear  To Send)  line signal is
+;         handled  if initialized  so. Time  out error  will be generated when
+;         specified time passed during waiting for permision for transmission,
+;         and the character will not be sent.
+;
+; DOES NOT SUPPORT FLOW CONTROL
+; CURRENT ONLY SUPPORT CHANNEL B
+SNDCHR:
+	OUT	(DAT_CH), A		; send to port
+	XOR	A			; SIGNAL SUCCESS
+	RET
+
+CLOSE:		; close RS232C port
+	RET
+EOF:		; tell EOF code received
+	RET
+
+LOC:
+	ld b,b
+	jr $+2
+	LD	HL, 16 		; reports number of characters in the
+	RET			; receiver buffer
+
+LOF:		; reports number of free space left in the
+;: receiver buffer
+	RET
+BACKUP:		; back up a character
+	RET
+SNDBRK:		; send break character
+	RET
+DTR:		; turn on/off DTR line
+	RET
+SETCHN:		; set channel number
+	RET
+
+;-----------------------------------------------------------------------------
+;
+; Print a zero-terminated string on screen
+; Input: DE = String address
+	PUBLIC	PRINT
+
+PRINT:
+	ld	a,(de)
+	or	a
+	ret	z
+	call	CHPUT
+	inc	de
+	jr	PRINT
+
+; -----------------------------------------------------------------------------
+;
+; INITIALISE SIO CHANNEL
+; INPUTS:
+;	B - RTS PORT STATE
+;	C - SIO CHANNEL PORT
+SIOINIT:
+	LD	A, 0
+	OUT	(C), A
+	LD	A, 018H
+	OUT	(C), A
+
+	; WR4: CLK BAUD PARITY STOP BIT
+	LD	A, 4
+	OUT	(C), A
+	LD	A, 0C4H
+	OUT	(C), A
+
+	; WR1: INTERRUPT ON
+	LD	A, 1
+	OUT	(C), A
+	LD	A, SIO_WR1VAL
+	OUT	(C), A
+
+	; WR2: IM2 VEC OFFSET
+	LD	A, 2
+	OUT	(C), A
+	LD	A, 00H
+	OUT	(C),A
+
+	; WR3: 8 BIT RCV, CTS/DCD AUTO, RX ENABLE
+	LD	A, 3
+	OUT	(C), A
+	LD	A, 0E1H
+	OUT	(C), A
+
+	; WR5: DTR, 8
+	LD	A, 5
+	OUT	(C), A
+	OUT	(C), B
+	RET
+	END

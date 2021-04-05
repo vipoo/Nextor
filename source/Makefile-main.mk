@@ -311,12 +311,19 @@ export BANK_SWITCH_CODE_ADDR := 32720 # 7FD0h
 
 rc2014dr.rel: rc2014dr.mac cfdrv.mac embinc.mac
 rcembdrv.rel: rcembdrv.mac embinc.mac
+extbio.rel: extbio.mac
+rs232jt.rel: rs232jt.mac
 
-$(BLDDIR)rc2014dr.hex: rc2014dr.rel
+
+$(BLDDIR)rs232jt.hex: rs232jt.rel
 	@cd $(BLDDIR)
-	l80.sh rc2014dr.hex /P:4100,RC2014DR,RC2014DR/N/X/Y/E
+	l80.sh rs232jt.hex /P:7BD0,RS232JT,RS232JT/N/X/Y/E
+	cleancpmfile.sh rs232jt.sym
+
+$(BLDDIR)rc2014dr.hex: rc2014dr.rel extbio.rel
+	@cd $(BLDDIR)
+	l80.sh rc2014dr.hex /P:4100,RC2014DR,EXTBIO,RC2014DR/N/X/Y/E
 	cleancpmfile.sh rc2014dr.sym
-	cat rc2014dr.sym
 	DRVEND=$$(getsymb.sh rc2014dr.sym DRVEND)
 	if (($${DRVEND} > $${BANK_SWITCH_CODE_ADDR})); then
 		printf "\e[31mDriver code overflow - driver bank has exceeded 16k\r\n\e[0m"
@@ -330,6 +337,16 @@ $(BLDDIR)rcembdrv.hex $(BLDDIR)rcembdrv.sym: rcembdrv.rel
 	SECEND=$$(getsymb.sh rcembdrv.sym SECEND)
 	if (($${SECEND} > $${BANK_SWITCH_CODE_ADDR})); then
 		printf "\e[31mDriver code overflow - driver bank has exceeded 16k\r\n\e[0m"
+		exit 1
+	fi
+
+$(BLDDIR)rs232jt.bin: rs232jt.hex
+	@cd $(BLDDIR)
+	rm -f rs232jt.bin
+	hex2bin -s 7BD0 rs232jt.hex
+	filesize=$$(stat -c%s "rs232jt.bin")
+	if ((filesize > 1024 )); then
+		echo -e "\r\nError: rs232jt exceeded size of 1k (size of bin $$filesize)"
 		exit 1
 	fi
 
@@ -379,9 +396,9 @@ $(BLDDIR)ymchgbnk.bin: ymchgbnk.hex
 	rm -f ymchgbnk.bin
 	hex2bin -s 7FD0 ymchgbnk.hex
 
-$(BLDDIR)nextor-$(VERSION).rc2014.rom: dos250ba.dat rc2014-driver-with-sectors.bin ymchgbnk.bin $(BLDDIR)../../linuxtools/mknexrom
+$(BLDDIR)nextor-$(VERSION).rc2014.rom: dos250ba.dat rc2014-driver-with-sectors.bin ymchgbnk.bin $(BLDDIR)../../linuxtools/mknexrom rs232jt.bin
 	@cd $(BLDDIR)
-	mknexrom dos250ba.dat nextor-$(VERSION).rc2014.rom -d:rc2014-driver-with-sectors.bin -m:ymchgbnk.bin
+	mknexrom dos250ba.dat nextor-$(VERSION).rc2014.rom -d:rc2014-driver-with-sectors.bin -m:ymchgbnk.bin -e:rs232jt.bin
 	cp -u nextor-$(VERSION).rc2014.rom ../
 
 

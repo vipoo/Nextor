@@ -156,6 +156,7 @@ DRV_NAME:
 	ds	32-($-DRV_NAME)," "
 
 
+	EXTRN	DRV_EXTBIO
 ;-----------------------------------------------------------------------------
 ;
 ; Jump table for the driver public routines
@@ -302,24 +303,6 @@ DRV_BASSTAT:
 DRV_BASDEV:
 	scf
 	ret
-
-
-;-----------------------------------------------------------------------------
-;
-; Extended BIOS hook.
-; Works the expected way, except that it must return
-; D'=1 if the old hook must be called, D'=0 otherwise.
-; It is entered with D'=1.
-
-DRV_EXTBIO:
-	;CALL EXTENDED ROM PAGE INIT
-	; LD	IY, SLOT_3_3_ID * 256       	; BIOS SLOT IN IYH (3-3)
-	; LD	IX, MSXDOS_RC2014_EXTBIO       	; ADDRESS OF BIOS ROUTINE
-	; CALL	CALSLT
-	; EXX
-	; LD	D, 1				; CURRENT IMPLEMENTED HANDLERS ALWAYS REQUIRE TO CONTINUE ONTO NEXT
-	; EXX
-	RET
 
 ;-----------------------------------------------------------------------------
 ;
@@ -848,6 +831,7 @@ LUN_INFO_ROM_INVALID:
 ;
 ; Print a zero-terminated string on screen
 ; Input: DE = String address
+	PUBLIC	PRINT
 
 PRINT:
 	ld	a,(de)
