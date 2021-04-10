@@ -294,7 +294,7 @@ $(BLDDIR)srchgbnk.bin: srchgbnk.hex
 	rm -f srchgbnk.bin
 	hex2bin -s 7FD0 srchgbnk.hex
 
-$(BLDDIR)nextor-$(VERSION).sunriseide.rom: dos250ba.dat sunrise.bin srchgbnk.bin mknexrom
+$(BLDDIR)nextor-$(VERSION).sunriseide.rom: dos250ba.dat sunrise.bin srchgbnk.bin $(BLDDIR)../../linuxtools/mknexrom
 	@cd $(BLDDIR)
 	mknexrom dos250ba.dat nextor-$(VERSION).sunriseide.rom -d:sunrise.bin -m:srchgbnk.bin
 	cp -u nextor-$(VERSION).sunriseide.rom ../
@@ -355,7 +355,7 @@ $(BLDDIR)rcembdrv.bin: rcembdrv.hex
 
 .PRECIOUS: %.hex
 
-$(BLDDIR)rc2014-driver-with-sectors.bin: $(BLDDIR)rc2014dr.bin $(BLDDIR)rcembdrv.bin fdd.dsk
+$(BLDDIR)rc2014-driver-with-sectors.bin: $(BLDDIR)rc2014dr.bin $(BLDDIR)rcembdrv.bin $(BLDDIR)fdd.dsk
 	@cd $(BLDDIR)
 	SECSTRT=$$(getsymb.sh rcembdrv.sym SECSTR)
 	DATSIZ=$$(getsymb.sh rcembdrv.sym DATSIZ)
@@ -379,7 +379,7 @@ $(BLDDIR)ymchgbnk.bin: ymchgbnk.hex
 	rm -f ymchgbnk.bin
 	hex2bin -s 7FD0 ymchgbnk.hex
 
-$(BLDDIR)nextor-$(VERSION).rc2014.rom: dos250ba.dat rc2014-driver-with-sectors.bin ymchgbnk.bin mknexrom
+$(BLDDIR)nextor-$(VERSION).rc2014.rom: dos250ba.dat rc2014-driver-with-sectors.bin ymchgbnk.bin $(BLDDIR)../../linuxtools/mknexrom
 	@cd $(BLDDIR)
 	mknexrom dos250ba.dat nextor-$(VERSION).rc2014.rom -d:rc2014-driver-with-sectors.bin -m:ymchgbnk.bin
 	cp -u nextor-$(VERSION).rc2014.rom ../
@@ -388,28 +388,29 @@ $(BLDDIR)nextor-$(VERSION).rc2014.rom: dos250ba.dat rc2014-driver-with-sectors.b
 # --------------------------------------------------------------------------------------
 # FLOPPY DISK IMAGE FOR RC2014 DRIVER
 
+## Build a FAT12 floppy disk image containing nextor.sys, command2.com
 EXTRAS = $(wildcard ../extras/*)
 $(BLDDIR)fdd.dsk: nextor.sys command2.com fixdisk.com chkdsk.com $(EXTRAS) $(TOOLS_LIST) rcembdrv.sym
 	@cd $(BLDDIR)
 	DATSIZ=$$(getsymb.sh rcembdrv.sym DATSIZ)
-	sudo umount -df /media/fdddsk > /dev/null 2>&1 || true
-	rm -f fdd.dsk
+	sudo umount -df /tmp/fdddsk > /dev/null 2>&1 || true
+	sudo rm -f fdd.dsk
 	dd if=/dev/zero of=fdd.dsk bs=$$(($$DATSIZ*18)) count=1
 	mkfs.vfat -F 12 -f 1 fdd.dsk
-	sudo mkdir -p /media/fdddsk
-	sudo mount -t vfat fdd.dsk /media/fdddsk
-	sudo cp -v --preserve=timestamps *.com /media/fdddsk
-	sudo cp -v --preserve=timestamps nextor.sys /media/fdddsk
-	sudo cp -v --preserve=timestamps ../../extras/* /media/fdddsk
-	sudo umount -df /media/fdddsk
+	mkdir -p /tmp/fdddsk/
+	sudo mount -t vfat -o tz=UTC,time_offset=600 fdd.dsk /tmp/fdddsk
+	sudo mkdir -p /tmp/fdddsk/system
+	sudo cp -v --preserve=timestamps *.com /tmp/fdddsk/system/
+	sudo mv /tmp/fdddsk/system/command2.com /tmp/fdddsk/
+	sudo cp --preserve=timestamps -v nextor.sys /tmp/fdddsk
+	sudo cp -rv --preserve=timestamps ../../extras/* /tmp/fdddsk/
+	ls -lR /tmp/fdddsk
+	sudo umount -df /tmp/fdddsk
 	cp -u fdd.dsk ../
 
-## Build a FAT12 floppy disk image containing nextor.sys, command2.com
-fdddsk: $(BLDDIR)fdd.dsk
-
-## Build the rc2014 rom image (ROM DISK)
-rc2014: $(BLDDIR)nextor-$(VERSION).rc2014.rom
-	@
+# ## Build the rc2014 rom image (ROM DISK)
+# rc2014: $(BLDDIR)nextor-$(VERSION).rc2014.rom
+# 	@
 
 # --------------------------------------------------------------------------------------
 # mknexrom
@@ -418,6 +419,3 @@ $(BLDDIR)../../linuxtools/mknexrom: ../../wintools/mknexrom.c
 	@cd $(BLDDIR)
 	gcc ../../wintools/mknexrom.c -o ../../linuxtools/mknexrom
 
-# ## build the mknexrom utility
-mknexrom: $(BLDDIR)../../linuxtools/mknexrom
-	@
