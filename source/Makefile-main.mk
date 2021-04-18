@@ -389,7 +389,7 @@ $(BLDDIR)nextor-$(VERSION).rc2014.rom: dos250ba.dat rc2014-driver-with-sectors.b
 # FLOPPY DISK IMAGE FOR RC2014 DRIVER
 
 ## Build a FAT12 floppy disk image containing nextor.sys, command2.com
-EXTRAS = $(wildcard ../extras/*)
+EXTRAS = $(wildcard ../extras/*) $(wildcard ../extras/**/*)
 $(BLDDIR)fdd.dsk: nextor.sys command2.com fixdisk.com chkdsk.com $(EXTRAS) $(TOOLS_LIST) rcembdrv.sym
 	@cd $(BLDDIR)
 	DATSIZ=$$(getsymb.sh rcembdrv.sym DATSIZ)
