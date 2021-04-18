@@ -35,6 +35,7 @@ sf "kernel/bank6/*.mac"
 sf kernel/drivers/SunriseIDE/chgbnk.mac srchgbnk.mac
 sf kernel/drivers/SunriseIDE/driver.mac sunrise.mac
 sf "kernel/drivers/rc2014/*.mac"
+sf "kernel/drivers/rc2014/sio.inc"
 sf kernel/drivers/StandaloneASCII16/chgbnk.mac a6chgbnk.mac
 sf kernel/drivers/yellowmsxforrc2014/ymchgbnk.mac
 sf "common/*"

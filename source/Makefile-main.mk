@@ -309,19 +309,20 @@ sunrise: $(BLDDIR)nextor-$(VERSION).sunriseide.rom
 
 export BANK_SWITCH_CODE_ADDR := 32720 # 7FD0h
 
-rc2014dr.rel: rc2014dr.mac cfdrv.mac embinc.mac rs232jt.inc
+rc2014dr.rel: rc2014dr.mac cfdrv.mac embinc.mac rs232jt.inc sio.inc
 rcembdrv.rel: rcembdrv.mac embinc.mac
 extbio.rel: extbio.mac
 rs232jt.rel: rs232jt.mac
+sio.rel: sio.mac sio.inc
 
 $(BLDDIR)rs232jt.inc: rs232jt.hex
 	cd $(BLDDIR)
 	symtoequs.sh rs232jt.sym rs232jt.inc "\?\S*" DRV_IN
 	sed -i 's/DRV_IN/DRV_INIT_SIO/' rs232jt.inc
 
-$(BLDDIR)rs232jt.hex: rs232jt.rel
+$(BLDDIR)rs232jt.hex: rs232jt.rel sio.rel
 	@cd $(BLDDIR)
-	l80.sh rs232jt.hex /P:7BD0,RS232JT,RS232JT/N/X/Y/E
+	l80.sh rs232jt.hex /P:7BD0,RS232JT,SIO,RS232JT/N/X/Y/E
 	cleancpmfile.sh rs232jt.sym
 
 $(BLDDIR)rc2014dr.hex: rc2014dr.rel extbio.rel

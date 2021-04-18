@@ -52,3 +52,4 @@ linuxtools/prereq
 linuxtools/mknexrom
 
 extras/*
+!source/kernel/drivers/rc2014/sio.inc
