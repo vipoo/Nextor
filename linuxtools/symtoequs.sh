@@ -19,7 +19,7 @@ do
   do
     if [[ "$p" =~ $pat ]]; then
       printf "${BASH_REMATCH[2]}\tequ\t${BASH_REMATCH[1]}h\r\n" >> "$2"
-      printf "\tpublic\t${BASH_REMATCH[2]}\r\n" >> "$2"
+      # printf "\tpublic\t${BASH_REMATCH[2]}\r\n" >> "$2"
     fi
 
   done  < <(printf '%s\n' "$FILE_CONTENTS")
