@@ -25,9 +25,7 @@ BNKREG	equ	6000h		;System IC version
 BNKID	equ	40FFh		;Where Bank ID is stored
 
 CHGBNK::
-
 	ld	(BNKREG),a
-
 	ret
 ;
 	defs	(8000h-7FD0h)-($-CHGBNK),0FFh

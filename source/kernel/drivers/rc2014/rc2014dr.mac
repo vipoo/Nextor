@@ -7,6 +7,7 @@
 	include		bluemsx.inc
 	include		const.inc
 	include		embinc.mac
+	include 	rs232jt.inc
 
 
 ;-----------------------------------------------------------------------------
@@ -17,7 +18,8 @@ CHPUT			EQU	000A2H	; CHARACTER OUTPUT
 CHGET			EQU	0009FH	; CHARACTER INPUT
 MSXDOS_RC2014_INIT	EQU	08100H
 
-SLOT_3_3_ID		EQU	08FH;
+SLOT_3_3_ID		EQU	08FH	;
+CALSLT			EQU	0001Ch
 
 DRV_START:
 
@@ -231,8 +233,7 @@ DRV_NAME:
 ;    procedure will continue the normal way
 ;    (for drive-based drivers only. Device-based drivers always
 ;     get two allocated drives.)
-CALSLT	EQU	0001Ch
-	include rs232jt.inc
+
 DRV_INIT:
 	OR	A
 	JR	NZ, DRV_INIT2
@@ -241,19 +242,23 @@ DRV_INIT1:
 	LD	DE, INFO_S
 	CALL	PRINT
 
-	CALL	MY_GWORK			; PASS WORK AREA ADDRESS TO EXT-BIO
+	CALL	MY_GWORK			; PASS WORK AREA ADDRESS
 	PUSH	IX
-	POP	HL
+	POP	HL				; IN HL
 	PUSH	IX
+
+	LD	IX, DRV_INIT_SIO
+	XOR	A
+	CALL	CALBNK
+
+	POP	HL				; RESTORE WORK ADDRESS
+	PUSH	HL
 
 	; CALL EXTENDED ROM PAGE INIT
 	LD	IY, SLOT_3_3_ID * 256       	; BIOS SLOT IN IYH (3-3)
 	LD	IX, MSXDOS_RC2014_INIT       	; ADDRESS OF BIOS ROUTINE
 	CALL	CALSLT              		; INTERSLOT CALL
 
-	LD	IX, DRV_INIT_SIO
-	XOR	A
-	CALL	CALBNK
 
 	CALL	DRV_INIT_CF
 	POP	IX
@@ -265,7 +270,7 @@ DRV_INIT1:
 DRV_INIT2:
 	;NOTE THAT CY IS 0 (NO INTERRUPT HOOKING NEEDED)
 	XOR	A
-	LD	HL, 64
+	LD	HL, 256	; TEMP OVERRIDE FOR TESTING OF SIOLEN
 	RET
 
 

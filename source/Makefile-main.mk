@@ -317,7 +317,7 @@ sio.rel: sio.mac sio.inc
 
 $(BLDDIR)rs232jt.inc: rs232jt.hex
 	cd $(BLDDIR)
-	symtoequs.sh rs232jt.sym rs232jt.inc "\?\S*" DRV_IN
+	symtoequs.sh rs232jt.sym rs232jt.inc "\?\S*" DRV_IN SIOLEN
 	sed -i 's/DRV_IN/DRV_INIT_SIO/' rs232jt.inc
 
 $(BLDDIR)rs232jt.hex: rs232jt.rel sio.rel
@@ -411,7 +411,7 @@ $(BLDDIR)nextor-$(VERSION).rc2014.rom: dos250ba.dat rc2014-driver-with-sectors.b
 # FLOPPY DISK IMAGE FOR RC2014 DRIVER
 
 ## Build a FAT12 floppy disk image containing nextor.sys, command2.com
-EXTRAS = $(wildcard ../extras/*)
+EXTRAS = $(wildcard ../extras/*) $(wildcard ../extras/**/*)
 $(BLDDIR)fdd.dsk: nextor.sys command2.com fixdisk.com chkdsk.com $(EXTRAS) $(TOOLS_LIST) rcembdrv.sym
 	@cd $(BLDDIR)
 	DATSIZ=$$(getsymb.sh rcembdrv.sym DATSIZ)
