@@ -858,7 +858,7 @@ CHK_DEV:	ld	a,d
 BROADCAST_BIO:	ld	a,MAP_DEV	;Build device number table function.
 		call	EXTWRT		;+0 set our device number
 		call	EXTWRT		;+1 reserved field
-        jp RESET_EXX_D
+		ret
 ;
 CHK_UNAPI:
         ld  a,d
