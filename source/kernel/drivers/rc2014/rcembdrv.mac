@@ -53,6 +53,12 @@ MY_GWORK:
 	XOR	A
 	LD	IX, GWORK
 	CALL	CALBNK
+	push	hl
+	ld	l, (ix)
+	ld	h, (ix+1)
+	push	hl
+	pop	ix
+	pop	hl
 	POP	AF
 	RET
 
