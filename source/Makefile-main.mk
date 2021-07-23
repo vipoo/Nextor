@@ -393,24 +393,18 @@ EXTRAS = $(wildcard ../extras/*) $(wildcard ../extras/**/*)
 $(BLDDIR)fdd.dsk: nextor.sys command2.com fixdisk.com chkdsk.com $(EXTRAS) $(TOOLS_LIST) rcembdrv.sym
 	@cd $(BLDDIR)
 	DATSIZ=$$(getsymb.sh rcembdrv.sym DATSIZ)
-	sudo umount -df /tmp/fdddsk > /dev/null 2>&1 || true
-	sudo rm -f fdd.dsk
+	rm -f fdd.dsk
 	dd if=/dev/zero of=fdd.dsk bs=$$(($$DATSIZ*18)) count=1
 	mkfs.vfat -F 12 -f 1 fdd.dsk
-	mkdir -p /tmp/fdddsk/
-	sudo mount -t vfat -o tz=UTC,time_offset=600 fdd.dsk /tmp/fdddsk
-	sudo mkdir -p /tmp/fdddsk/system
-	sudo cp -v --preserve=timestamps *.com /tmp/fdddsk/system/
-	sudo mv /tmp/fdddsk/system/command2.com /tmp/fdddsk/
-	sudo cp --preserve=timestamps -v nextor.sys /tmp/fdddsk
-	sudo cp -rv --preserve=timestamps ../../extras/* /tmp/fdddsk/
-	ls -lR /tmp/fdddsk
-	sudo umount -df /tmp/fdddsk
+	mmd -i fdd.dsk system
+	mcopy -i fdd.dsk *.com ::/system/
+	mdir -i fdd.dsk -/
+	mmove -i fdd.dsk ::/system/command2.com ::/
+	mcopy -i fdd.dsk nextor.sys ::/
+	mcopy -i fdd.dsk ../../extras/* ::/
+	mdir -i fdd.dsk -/
 	cp -u fdd.dsk ../
 
-# ## Build the rc2014 rom image (ROM DISK)
-# rc2014: $(BLDDIR)nextor-$(VERSION).rc2014.rom
-# 	@
 
 # --------------------------------------------------------------------------------------
 # mknexrom
