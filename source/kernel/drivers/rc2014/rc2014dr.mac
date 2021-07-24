@@ -430,6 +430,7 @@ DRV_CFG_B:
 ;          B = Number of sectors actually read (in case of error only)
 
 DEV_RW:
+	EI
 	JR	NC, DEV_READ		; ARE WE READING?
 
 	CP	1
