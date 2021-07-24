@@ -920,8 +920,8 @@ no_rest:
 ;
 ; End of the driver code
 
-INFO_S:			DB	"MSX ON RC2014", 13, 10
-			DB	"-------------", 13, 10, 0
+INFO_S:			DB	10, "MSX ON RC2014 V1.1 (2021-07-24)", 13, 10
+			DB	"-------------------------------", 13, 10, 0
 
 ROM_MAN:		DB	"Homebrew"
 ROM_MAN_LEN		EQU	$-ROM_MAN
