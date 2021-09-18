@@ -920,7 +920,7 @@ no_rest:
 ;
 ; End of the driver code
 
-INFO_S:			DB	10, "MSX ON RC2014 V1.1 (2021-07-24)", 13, 10
+	include 	version.mac
 			DB	"-------------------------------", 13, 10, 0
 
 ROM_MAN:		DB	"Homebrew"
