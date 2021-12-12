@@ -997,6 +997,7 @@ VER_CHK:
 	or	a
 	jr	z,MAST_OK
 	cp	16*NXTVER##+NXTV_HI##	;If old master is same or newer than I
+	jr	z, MAST_OK		; then lets become master --- TODO: can we compare patch versions?
 	jr	nc,SLAVE	; become its slave.
 ;
 MAST_OK:
