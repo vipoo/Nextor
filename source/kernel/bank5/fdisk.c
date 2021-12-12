@@ -20,7 +20,7 @@
 #include <system.h>
 #include "dos.h"
 #include "types.h"
-#include "AsmCall.h"
+#include "asmcall.h"
 #include "drivercall.h"
 #include "partit.h"
 #else
@@ -1692,7 +1692,7 @@ int CallFunctionInExtraBank(int functionNumber, void* parametersBuffer)
 
 #ifdef MAKEBUILD
 #include "printf.c"
-#include "AsmCall.c"
+#include "asmcall.c"
 #else
 #include "../../tools/C/printf.c"
 #include "../../tools/C/asmcall.c"

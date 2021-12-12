@@ -40,4 +40,10 @@ if [[ "${DEST_FILE}" == "" ]]; then
   DEST_FILE=$(basename $SRC_FILE)
 fi
 
-ln -sf "${PWD}/$SRC_FILE" "${PWD}/${WRK_DIR}/${DEST_FILE}"
+if [[ $SRC_FILE == *mac ]]; then # * is used for pattern matching
+  unix2dos -q -f -k -n "${PWD}/$SRC_FILE" "${PWD}/${WRK_DIR}/${DEST_FILE}"
+  echo -e "\r\n" >>  "${PWD}/${WRK_DIR}/${DEST_FILE}"
+  touch -r "${PWD}/$SRC_FILE" "${PWD}/${WRK_DIR}/${DEST_FILE}"
+else
+  ln -sf "${PWD}/$SRC_FILE" "${PWD}/${WRK_DIR}/${DEST_FILE}"
+fi
