@@ -19,7 +19,7 @@
 #include "types.h"
 #include "system.h"
 #include "dos.h"
-#include "AsmCall.h"
+#include "asmcall.h"
 #include "drivercall.h"
 #include "partit.h"
 #else
@@ -588,7 +588,7 @@ void Locate(byte x, byte y)
 }
 
 #ifdef MAKEBUILD
-#include "AsmCall.c"
+#include "asmcall.c"
 #else
 #include "../../tools/C/asmcall.c"
 #endif

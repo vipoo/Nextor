@@ -92,7 +92,7 @@ setup_cmd_loop:	ld	a,(hl)			; by HL to the buffer at
 		or	a			; in register A then try that
 		call	nz,TRY_MSX_DOS		; one.
 ;
-if 1
+if 0
 		pop	af			;If that drive failed then
 		call	TRY_MSX_DOS		; try default drive.
 		ret

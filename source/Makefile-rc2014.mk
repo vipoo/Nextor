@@ -43,7 +43,6 @@ export VERSION=2.1.1
 
 export PATH := $(PWD)/../linuxtools/:$(PWD)/../linuxtools/prereq/sdcc-4.0.0/bin/:$(PWD)/../linuxtools/prereq/hex2bin/:$(PWD)/../linuxtools/prereq/cpm:$(PATH)
 
-
 .PHONY: all
 all: rc2014 sunrise hdddsk
 	@

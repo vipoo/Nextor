@@ -122,7 +122,7 @@ $(BLDDIR)chgbnk.rel:
 
 $(BLDDIR)b0labels.inc: b0.hex
 	@cd $(BLDDIR)
-	symtoequs.sh b0.sym b0labels.inc "\?\S*" DOSV0 GETERR BDOSE KDERR KABR
+	symtoequs.sh b0.sym b0labels.inc "\?\S*" DOSV0 GETERR BDOSE KDERR KABR C4PBK
 
 $(BLDDIR)b0lab_b3.inc: b0.hex
 	@cd $(BLDDIR)
@@ -229,7 +229,7 @@ $(BLDDIR)b5.bin: b5.hex
 	rm -f b5.bin
 	hex2bin -s 4000 b5.hex
 
-$(BLDDIR)fdisk.ihx: fdisk.c fdisk_crt0.rel fdisk.c $(TOOLS_SRC)AsmCall.h fdisk.h $(TOOLS_SRC)asm.h $(TOOLS_SRC)system.h $(TOOLS_SRC)dos.h $(TOOLS_SRC)types.h $(TOOLS_SRC)partit.h drivercall.h
+$(BLDDIR)fdisk.ihx: fdisk.c fdisk_crt0.rel fdisk.c $(TOOLS_SRC)asmcall.h fdisk.h $(TOOLS_SRC)asm.h $(TOOLS_SRC)system.h $(TOOLS_SRC)dos.h $(TOOLS_SRC)types.h $(TOOLS_SRC)partit.h drivercall.h
 	@cd $(BLDDIR)
 	sdcc -DMAKEBUILD -I../../source/$(TOOLS_SRC) --code-loc 0x4120 --data-loc 0x8020 -mz80 --disable-warning 196 --disable-warning 84 --disable-warning 85 --max-allocs-per-node 10000 --allow-unsafe-read --opt-code-size --no-std-crt0 fdisk_crt0.rel fdisk.c
 
@@ -237,7 +237,7 @@ $(BLDDIR)fdisk.dat: fdisk.ihx
 	@cd $(BLDDIR)
 	hex2bin -e dat fdisk.ihx
 
-$(BLDDIR)fdisk2.ihx: fdisk2.c fdisk_crt0.rel fdisk.c $(TOOLS_SRC)AsmCall.h fdisk.h $(TOOLS_SRC)asm.h $(TOOLS_SRC)system.h $(TOOLS_SRC)dos.h $(TOOLS_SRC)types.h $(TOOLS_SRC)partit.h drivercall.h
+$(BLDDIR)fdisk2.ihx: fdisk2.c fdisk_crt0.rel fdisk.c $(TOOLS_SRC)asmcall.h fdisk.h $(TOOLS_SRC)asm.h $(TOOLS_SRC)system.h $(TOOLS_SRC)dos.h $(TOOLS_SRC)types.h $(TOOLS_SRC)partit.h drivercall.h
 	@cd $(BLDDIR)
 	sdcc -DMAKEBUILD -I../../source/$(TOOLS_SRC) --code-loc 0x4120 --data-loc 0xA000 -mz80 --disable-warning 196 --disable-warning 84 --disable-warning 85 --max-allocs-per-node 10000 --allow-unsafe-read --opt-code-size --no-std-crt0 fdisk_crt0.rel fdisk2.c
 
@@ -409,7 +409,7 @@ $(BLDDIR)fdd.dsk: nextor.sys command2.com fixdisk.com chkdsk.com $(EXTRAS) $(TOO
 # --------------------------------------------------------------------------------------
 # mknexrom
 
-$(BLDDIR)../../linuxtools/mknexrom: ../../wintools/mknexrom.c
+$(BLDDIR)../../linuxtools/mknexrom: ../../buildtools/sources/mknexrom.c
 	@cd $(BLDDIR)
-	gcc ../../wintools/mknexrom.c -o ../../linuxtools/mknexrom
+	gcc ../../buildtools/sources/mknexrom.c -o ../../linuxtools/mknexrom
 
