@@ -4,7 +4,6 @@
     ; Provides a read only disk image
 
 	include		condasm.inc
-	include		bluemsx.inc
 	include		const.inc
 	include		embinc.mac
 
