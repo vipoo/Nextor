@@ -57,6 +57,9 @@ sf "command/fixdisk/fixdisk.mac"
 sf "command/fixdisk/text.mac" fdtext.mac
 sf "command/fixdisk/jtext.mac" fdjtext.mac
 sf "tools/*.MAC"
+sf kernel/drivers/StandaloneASCII8/chgbnk.mac mfchgbnk.mac
+sf "kernel/drivers/MegaFlashRomSD/driver-1slot.dat" driver-1slot.dat
+sf "kernel/drivers/MegaFlashRomSD/driver-2slots.dat" driver-2slots.dat
 
 rm -f ${WRK_DIR}/condasm.inc
 sf "kernel/condasm/${BUILD_TYPE}.inc" condasm.inc

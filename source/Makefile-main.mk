@@ -1,5 +1,6 @@
 include Makefile-rules.mk
 
+BINDIR := ../bin/
 BLDDIR := ../bin/working/
 VPATH = ../bin/working/
 
@@ -303,6 +304,50 @@ $(BLDDIR)nextor-$(VERSION).sunriseide.rom: dos250ba.dat sunrise.bin srchgbnk.bin
 sunrise: $(BLDDIR)nextor-$(VERSION).sunriseide.rom
 	@
 
+# DRIVER MFR
+$(BLDDIR)mfchgbnk.hex: mfchgbnk.rel
+	@cd $(BLDDIR)
+	l80.sh mfchgbnk.hex /P:7fd0,MFCHGBNK,MFCHGBNK/N/X/Y/E
+
+$(BLDDIR)mfchgbnk.bin: mfchgbnk.hex
+	@cd $(BLDDIR)
+	rm -f mfchgbnk.bin
+	hex2bin -s 7FD0 mfchgbnk.hex
+
+$(BLDDIR)mfr.nextor-$(VERSION).rom: dos250ba.dat driver-1slot.dat mfchgbnk.bin $(BLDDIR)../../linuxtools/mknexrom
+	@cd $(BLDDIR)
+	mknexrom dos250ba.dat mfr.nextor-$(VERSION).rom -d:driver-1slot.dat -m:mfchgbnk.bin
+	cp -u mfr.nextor-$(VERSION).rom ../
+
+$(BINDIR)mfr.nextor-$(VERSION).rom: $(BLDDIR)mfr.nextor-$(VERSION).rom
+	@
+
+mfr: $(BLDDIR)mfr.nextor-$(VERSION).rom
+	@
+
+$(BLDDIR)mcs-romdisk.dsk:
+	@echo "Downloading base megaflashrom disk image from msxcartridgeshop.com"
+	wget -q --show-progress https://www.msxcartridgeshop.com/bin/ROMDISK.DSK -O $(BLDDIR)mcs-romdisk.dsk
+	touch $(BLDDIR)mcs-romdisk.dsk
+
+$(BLDDIR)mfr.dsk: $(BLDDIR)mcs-romdisk.dsk $(BLDDIR)nextor.sys $(BLDDIR)command2.com 
+	@export MTOOLS_SKIP_CHECK=1
+	cp $(BLDDIR)mcs-romdisk.dsk $(BLDDIR)mfr.dsk
+	mdel -i $(BLDDIR)mfr.dsk ::NEXTOR.SYS
+	mdel -i $(BLDDIR)mfr.dsk ::COMMAND2.COM
+	mcopy -i $(BLDDIR)mfr.dsk $(BLDDIR)nextor.sys ::NEXTOR.SYS
+	mcopy -i $(BLDDIR)mfr.dsk $(BLDDIR)command2.com ::COMMAND2.COM
+	mdel -i $(BLDDIR)mfr.dsk ::COMMAND.COM
+	mdel -i $(BLDDIR)mfr.dsk ::MSXDOS.SYS
+	@echo -e "Built new mfr.dsk image"
+
+$(BINDIR)mfr.dsk: $(BLDDIR)mfr.dsk
+	@cp -u $(BLDDIR)mfr.dsk $(BINDIR)
+
+.PHONY: mfrdsk
+mfrdsk: $(BINDIR)mfr.dsk
+	@
+
 # --------------------------------------------------------------------------------------
 # DRIVER: rc2014 using ASCII16 Banking
 
@@ -390,7 +435,7 @@ $(BLDDIR)nextor-$(VERSION).rc2014.rom: dos250ba.dat rc2014-driver-with-sectors.b
 
 ## Build a FAT12 floppy disk image containing nextor.sys, command2.com
 EXTRAS = $(wildcard ../extras/*) $(wildcard ../extras/**/*)
-$(BLDDIR)fdd.dsk: nextor.sys command2.com fixdisk.com chkdsk.com $(EXTRAS) $(TOOLS_LIST) rcembdrv.sym
+$(BLDDIR)fdd.dsk: $(BLDDIR)nextor.sys $(BLDDIR)command2.com $(BLDDIR)fixdisk.com $(BLDDIR)chkdsk.com $(EXTRAS) $(TOOLS_LIST) $(BLDDIR)rcembdrv.sym
 	@cd $(BLDDIR)
 	DATSIZ=$$(getsymb.sh rcembdrv.sym DATSIZ)
 	rm -f fdd.dsk
