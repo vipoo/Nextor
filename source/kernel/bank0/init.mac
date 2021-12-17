@@ -120,6 +120,8 @@ DPBSIZE	equ	21		;number of bytes per one DPB
 
 SCANKEYS_RAM_BASE equ 0A100h
 
+SCRMOD          EQU     0FCAFH
+
 ;
 ;	MACROs
 ;
@@ -1093,26 +1095,32 @@ BOTTOM_OK:
 	sbc	hl,de	;HL = -DE
 	add	hl,sp
 
-	push	hl
 
 ;	set default screen size
 ;
-	ld	hl,PRTTTL+7		;get higher address of INIT??
-	ld	a,(EXPTBL##)
+	ld	a, (SCRMOD)		; check if screen already initialised
+	or	a			; no idea if this is sufficient
+	jr	z, skip_scrren_init
+
+	push	hl			; screen appears not be be initialised
+					; so call basic bios operation SDFSCR (somehow?)
+	ld	hl, PRTTTL+7		;get higher address of INIT??
+	ld	a, (EXPTBL##)
 	call	RDSLT
-	push	af		;save it
+	push	af			;save it
 	inc	sp
-	dec	hl		;get lower address of INIT??
-	ld	a,(EXPTBL##)
+	dec	hl			;get lower address of INIT??
+	ld	a, (EXPTBL##)
 	call	RDSLT
 	push	af
 	inc	sp
-	pop	ix		;set address
-	ld	iy,(EXPTBL##-1)	;load expanded flag to [IYH]
-	call	CALSLT		;set default screen size
+	pop	ix			;set address
+	ld	iy, (EXPTBL##-1)		;load expanded flag to [IYH]
+	call	CALSLT			;set default screen size
 
 	pop	hl
 
+skip_scrren_init:
     xor a
 	call	CALL_DV_INIT
 
