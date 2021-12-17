@@ -2,7 +2,6 @@
 
 	; IMAGE FOR SECONDARY BANKS (INCLUDED WITH ROM SECTOR DATA)
 	include		condasm.inc
-	include		bluemsx.inc
 	include		const.inc
 	include		embinc.mac
 
