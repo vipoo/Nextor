@@ -863,7 +863,7 @@ if STURBO
 ;===== end mod DOS2.50
 	jp	nz,VER_CHK	;Skip if I am not the first cartridge
 else
-	jr	nz,VER_CHK	;Skip if I am not the first cartridge
+	jp	nz,VER_CHK	;Skip if I am not the first cartridge
 endif
 ;
 ;	I am the first disk cartridge.
