@@ -37,7 +37,6 @@ SHELL := /bin/bash
 .ONESHELL:
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
-# MAKEFLAGS += -j
 
 export VERSION=2.1.1
 

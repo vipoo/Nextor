@@ -1262,8 +1262,6 @@ NO_DRV2:
 	inc	(hl)		;Otherwise, tell others that there
 	ret			; is a master.
 
-
-
 ;
 ; Now that page-2 and page-3 slot might  have  been  changed  by  mapper
 ; setup  routine,  dig  into  the dungeon of the stack to patch out "old

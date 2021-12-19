@@ -26,7 +26,7 @@ sf kernel/bank4/misc.mac misc4.mac
 sf kernel/bank4/ramdrv.mac ramdrv4.mac
 sf kernel/bank4/seg.mac seg4.mac
 sf -s kernel/bank4 ramdrvh.mac env.mac b4.mac time.mac cpm.mac jump.mac partit.mac
-  # 40ff.mac and doshead.mac bkalloc.mac in bank4 are not used???
+  # 40ff.mac and bkalloc.mac in bank4 are not used???
 sf "kernel/bank5/*.mac"
 sf "kernel/bank5/*.s"
 sf "kernel/bank5/*.c"

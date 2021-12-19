@@ -351,7 +351,6 @@ mfrdsk: $(BINDIR)mfr.dsk
 # --------------------------------------------------------------------------------------
 # DRIVER: rc2014 using ASCII16 Banking
 
-
 export BANK_SWITCH_CODE_ADDR := 32720 # 7FD0h
 
 rc2014dr.rel: rc2014dr.mac cfdrv.mac embinc.mac
