@@ -3,6 +3,7 @@
 ;
 ;
 	INCLUDE	COMMAND.INC
+	INCLUDE	CONDASM.INC
 ;
 ;
 ;        This module contains the command routines for the  assorted  commands
@@ -1464,6 +1465,16 @@ VERMSG:		DEFB	'COMMAND2.COM version '
 		DEFB	CRYEAR##/  10 MOD 10 +'0'
 		DEFB	CRYEAR##      MOD 10 +'0'
 		DEFB	' ASCII Corporation'
+		
+if RC2014
+		DEFB	CR, LF
+		DEFB	'Copyright '
+		DEFB	CRYEAR##/1000 MOD 10 +'0'
+		DEFB	CRYEAR##/ 100 MOD 10 +'0'
+		DEFB	CRYEAR##/  10 MOD 10 +'0'
+		DEFB	CRYEAR##      MOD 10 +'0'
+		DEFB	' Konamiman'
+endif
 		DEFB	0
 ;
 ;
