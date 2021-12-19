@@ -438,6 +438,13 @@ $(BLDDIR)rc2014.nextor-$(VERSION).rom: dos250ba.dat rc2014-driver-with-sectors.b
 $(BINDIR)rc2014.nextor-$(VERSION).rom: $(BLDDIR)rc2014.nextor-$(VERSION).rom
 	@cp -u $(BLDDIR)rc2014.nextor-$(VERSION).rom $(BINDIR)rc2014.nextor-$(VERSION).rom
 
+$(BLDDIR)cbios.nextor-$(VERSION).rom: dos250ba.dat rc2014-driver-with-sectors.bin ymchgbnk.bin $(LINUX_TOOLS_DIR)mknexrom
+	@cd $(BLDDIR)
+	mknexrom dos250ba.dat cbios.nextor-$(VERSION).rom -d:rc2014-driver-with-sectors.bin -m:ymchgbnk.bin
+
+$(BINDIR)cbios.nextor-$(VERSION).rom: $(BLDDIR)cbios.nextor-$(VERSION).rom
+	@cp -u $(BLDDIR)cbios.nextor-$(VERSION).rom $(BINDIR)cbios.nextor-$(VERSION).rom
+
 # --------------------------------------------------------------------------------------
 # FLOPPY DISK IMAGE FOR RC2014 DRIVER
 
