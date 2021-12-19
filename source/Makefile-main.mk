@@ -1,8 +1,10 @@
 include Makefile-rules.mk
 
 BINDIR := ../bin/
-BLDDIR := ../bin/working/
-VPATH = ../bin/working/
+BLDDIR := ../bin/working/$(BUILD_TYPE)/
+VPATH = ../bin/working/$(BUILD_TYPE)/
+BUILD_TOOLS_SRC_DIR := ../buildtools/sources/
+LINUX_TOOLS_DIR := ../linuxtools/
 
 ## Main targets
 
@@ -232,7 +234,7 @@ $(BLDDIR)b5.bin: b5.hex
 
 $(BLDDIR)fdisk.ihx: fdisk.c fdisk_crt0.rel fdisk.c $(TOOLS_SRC)asmcall.h fdisk.h $(TOOLS_SRC)asm.h $(TOOLS_SRC)system.h $(TOOLS_SRC)dos.h $(TOOLS_SRC)types.h $(TOOLS_SRC)partit.h drivercall.h
 	@cd $(BLDDIR)
-	sdcc -DMAKEBUILD -I../../source/$(TOOLS_SRC) --code-loc 0x4120 --data-loc 0x8020 -mz80 --disable-warning 196 --disable-warning 84 --disable-warning 85 --max-allocs-per-node 10000 --allow-unsafe-read --opt-code-size --no-std-crt0 fdisk_crt0.rel fdisk.c
+	sdcc -DMAKEBUILD -I../../../source/$(TOOLS_SRC) --code-loc 0x4120 --data-loc 0x8020 -mz80 --disable-warning 196 --disable-warning 84 --disable-warning 85 --max-allocs-per-node 10000 --allow-unsafe-read --opt-code-size --no-std-crt0 fdisk_crt0.rel fdisk.c
 
 $(BLDDIR)fdisk.dat: fdisk.ihx
 	@cd $(BLDDIR)
@@ -240,7 +242,7 @@ $(BLDDIR)fdisk.dat: fdisk.ihx
 
 $(BLDDIR)fdisk2.ihx: fdisk2.c fdisk_crt0.rel fdisk.c $(TOOLS_SRC)asmcall.h fdisk.h $(TOOLS_SRC)asm.h $(TOOLS_SRC)system.h $(TOOLS_SRC)dos.h $(TOOLS_SRC)types.h $(TOOLS_SRC)partit.h drivercall.h
 	@cd $(BLDDIR)
-	sdcc -DMAKEBUILD -I../../source/$(TOOLS_SRC) --code-loc 0x4120 --data-loc 0xA000 -mz80 --disable-warning 196 --disable-warning 84 --disable-warning 85 --max-allocs-per-node 10000 --allow-unsafe-read --opt-code-size --no-std-crt0 fdisk_crt0.rel fdisk2.c
+	sdcc -DMAKEBUILD -I../../../source/$(TOOLS_SRC) --code-loc 0x4120 --data-loc 0xA000 -mz80 --disable-warning 196 --disable-warning 84 --disable-warning 85 --max-allocs-per-node 10000 --allow-unsafe-read --opt-code-size --no-std-crt0 fdisk_crt0.rel fdisk2.c
 
 $(BLDDIR)fdisk2.dat: fdisk2.ihx
 	@cd $(BLDDIR)
@@ -295,7 +297,7 @@ $(BLDDIR)srchgbnk.bin: srchgbnk.hex
 	rm -f srchgbnk.bin
 	hex2bin -s 7FD0 srchgbnk.hex
 
-$(BLDDIR)nextor-$(VERSION).sunriseide.rom: dos250ba.dat sunrise.bin srchgbnk.bin $(BLDDIR)../../linuxtools/mknexrom
+$(BLDDIR)nextor-$(VERSION).sunriseide.rom: dos250ba.dat sunrise.bin srchgbnk.bin $(LINUX_TOOLS_DIR)mknexrom
 	@cd $(BLDDIR)
 	mknexrom dos250ba.dat nextor-$(VERSION).sunriseide.rom -d:sunrise.bin -m:srchgbnk.bin
 	cp -u nextor-$(VERSION).sunriseide.rom ../
@@ -314,13 +316,12 @@ $(BLDDIR)mfchgbnk.bin: mfchgbnk.hex
 	rm -f mfchgbnk.bin
 	hex2bin -s 7FD0 mfchgbnk.hex
 
-$(BLDDIR)mfr.nextor-$(VERSION).rom: dos250ba.dat driver-1slot.dat mfchgbnk.bin $(BLDDIR)../../linuxtools/mknexrom
+$(BLDDIR)mfr.nextor-$(VERSION).rom: dos250ba.dat driver-1slot.dat mfchgbnk.bin $(LINUX_TOOLS_DIR)mknexrom
 	@cd $(BLDDIR)
 	mknexrom dos250ba.dat mfr.nextor-$(VERSION).rom -d:driver-1slot.dat -m:mfchgbnk.bin
-	cp -u mfr.nextor-$(VERSION).rom ../
 
 $(BINDIR)mfr.nextor-$(VERSION).rom: $(BLDDIR)mfr.nextor-$(VERSION).rom
-	@
+	@cp -u $(BLDDIR)mfr.nextor-$(VERSION).rom $(BINDIR)mfr.nextor-$(VERSION).rom
 
 mfr: $(BLDDIR)mfr.nextor-$(VERSION).rom
 	@
@@ -330,7 +331,7 @@ $(BLDDIR)mcs-romdisk.dsk:
 	wget -q --show-progress https://www.msxcartridgeshop.com/bin/ROMDISK.DSK -O $(BLDDIR)mcs-romdisk.dsk
 	touch $(BLDDIR)mcs-romdisk.dsk
 
-$(BLDDIR)mfr.dsk: $(BLDDIR)mcs-romdisk.dsk $(BLDDIR)nextor.sys $(BLDDIR)command2.com 
+$(BLDDIR)mfr.dsk: $(BLDDIR)mcs-romdisk.dsk $(BLDDIR)nextor.sys $(BLDDIR)command2.com
 	@export MTOOLS_SKIP_CHECK=1
 	cp $(BLDDIR)mcs-romdisk.dsk $(BLDDIR)mfr.dsk
 	mdel -i $(BLDDIR)mfr.dsk ::NEXTOR.SYS
@@ -367,7 +368,7 @@ $(BLDDIR)rc2014dr.hex: rc2014dr.rel
 		exit 1
 	fi
 
-$(BLDDIR)rcembdrv.hex $(BLDDIR)rcembdrv.sym: rcembdrv.rel
+$(BLDDIR)rcembdrv.hex: rcembdrv.rel
 	@cd $(BLDDIR)
 	l80.sh rcembdrv.hex /P:4100,RCEMBDRV,RCEMBDRV/N/X/Y/E
 	cleancpmfile.sh rcembdrv.sym
@@ -376,6 +377,13 @@ $(BLDDIR)rcembdrv.hex $(BLDDIR)rcembdrv.sym: rcembdrv.rel
 		printf "\e[31mDriver code overflow - driver bank has exceeded 16k\r\n\e[0m"
 		exit 1
 	fi
+
+$(BLDDIR)rcembdrv.sym: rcembdrv.hex
+	@if [ ! -f "$(BLDDIR)rcembdrv.hex" ]; then
+		echo "$(BLDDIR)rcembdrv.hex failed to be built"
+		exit 1
+	fi
+	@touch $(BLDDIR)rcembdrv.hex
 
 $(BLDDIR)rc2014dr.bin: rc2014dr.hex
 	@cd $(BLDDIR)
@@ -423,17 +431,18 @@ $(BLDDIR)ymchgbnk.bin: ymchgbnk.hex
 	rm -f ymchgbnk.bin
 	hex2bin -s 7FD0 ymchgbnk.hex
 
-$(BLDDIR)nextor-$(VERSION).rc2014.rom: dos250ba.dat rc2014-driver-with-sectors.bin ymchgbnk.bin $(BLDDIR)../../linuxtools/mknexrom
+$(BLDDIR)rc2014.nextor-$(VERSION).rom: dos250ba.dat rc2014-driver-with-sectors.bin ymchgbnk.bin $(LINUX_TOOLS_DIR)mknexrom
 	@cd $(BLDDIR)
-	mknexrom dos250ba.dat nextor-$(VERSION).rc2014.rom -d:rc2014-driver-with-sectors.bin -m:ymchgbnk.bin
-	cp -u nextor-$(VERSION).rc2014.rom ../
+	mknexrom dos250ba.dat rc2014.nextor-$(VERSION).rom -d:rc2014-driver-with-sectors.bin -m:ymchgbnk.bin
 
+$(BINDIR)rc2014.nextor-$(VERSION).rom: $(BLDDIR)rc2014.nextor-$(VERSION).rom
+	@cp -u $(BLDDIR)rc2014.nextor-$(VERSION).rom $(BINDIR)rc2014.nextor-$(VERSION).rom
 
 # --------------------------------------------------------------------------------------
 # FLOPPY DISK IMAGE FOR RC2014 DRIVER
 
 ## Build a FAT12 floppy disk image containing nextor.sys, command2.com
-EXTRAS = $(wildcard ../extras/*) $(wildcard ../extras/**/*)
+EXTRAS = $(wildcard ../../extras/*) $(wildcard ../../extras/**/*)
 $(BLDDIR)fdd.dsk: $(BLDDIR)nextor.sys $(BLDDIR)command2.com $(BLDDIR)fixdisk.com $(BLDDIR)chkdsk.com $(EXTRAS) $(TOOLS_LIST) $(BLDDIR)rcembdrv.sym
 	@cd $(BLDDIR)
 	DATSIZ=$$(getsymb.sh rcembdrv.sym DATSIZ)
@@ -442,18 +451,13 @@ $(BLDDIR)fdd.dsk: $(BLDDIR)nextor.sys $(BLDDIR)command2.com $(BLDDIR)fixdisk.com
 	mkfs.vfat -F 12 -f 1 fdd.dsk
 	mmd -i fdd.dsk system
 	mcopy -i fdd.dsk *.com ::/system/
-	mdir -i fdd.dsk -/
 	mmove -i fdd.dsk ::/system/command2.com ::/
 	mcopy -i fdd.dsk nextor.sys ::/
-	mcopy -i fdd.dsk ../../extras/* ::/
-	mdir -i fdd.dsk -/
-	cp -u fdd.dsk ../
-
+	mcopy -i fdd.dsk ../../../extras/* ::/
 
 # --------------------------------------------------------------------------------------
 # mknexrom
 
-$(BLDDIR)../../linuxtools/mknexrom: ../../buildtools/sources/mknexrom.c
-	@cd $(BLDDIR)
-	gcc ../../buildtools/sources/mknexrom.c -o ../../linuxtools/mknexrom
 
+$(LINUX_TOOLS_DIR)mknexrom: $(BUILD_TOOLS_SRC_DIR)mknexrom.c
+	@gcc $(BUILD_TOOLS_SRC_DIR)mknexrom.c -o $(LINUX_TOOLS_DIR)mknexrom

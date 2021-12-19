@@ -55,7 +55,8 @@ include Makefile-main.mk
 
 ## Remove the bin directory
 clean:
-	rm -rf ../bin
+	@rm -rf ../bin
+	rm -f ../linuxtools/mknexrom
 
 ../linuxtools/prereq/sdcc-4.0.0/bin/sz80:
 	@mkdir -p ../linuxtools/prereq/

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
-export WRK_DIR=../bin/working
+export WRK_DIR=../bin/working/${BUILD_TYPE}
 export PATH=$(pwd)/../linuxtools/:${PATH}
 
 BUILD_TYPE=${BUILD_TYPE:-std}
