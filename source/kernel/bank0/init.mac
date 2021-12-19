@@ -1276,6 +1276,7 @@ SPDEPTH	equ	2		;Stack depth in bytes.
 MEM_CHK:
 	call	GSLOT2		;Get current page-2 slot for MAP_SCAN.
 	call	MAP_SCAN##
+ifndef DISABLE_MEM_SCAN
 	ret	c
 ;
 	ld	hl,SPDEPTH+3
@@ -1304,6 +1305,7 @@ not_my_slot:
 	in	a,(PPI.AR)	;Get current primary slot.
 	rrd			;Replace the page-2 and page-3 slot
 	ld	(hl),a		; with the new one.
+endif
 	ret
 
 	subttl	Clean up procedure
