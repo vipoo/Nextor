@@ -450,6 +450,7 @@ $(BINDIR)cbios.nextor-$(VERSION).rom: $(BLDDIR)cbios.nextor-$(VERSION).rom
 
 ## Build a FAT12 floppy disk image containing nextor.sys, command2.com
 EXTRAS = $(wildcard ../../extras/*) $(wildcard ../../extras/**/*)
+.PHONY: $(BLDDIR)fdd.dsk
 $(BLDDIR)fdd.dsk: $(BLDDIR)nextor.sys $(BLDDIR)command2.com $(BLDDIR)fixdisk.com $(BLDDIR)chkdsk.com $(EXTRAS) $(TOOLS_LIST) $(BLDDIR)rcembdrv.sym
 	@cd $(BLDDIR)
 	DATSIZ=$$(getsymb.sh rcembdrv.sym DATSIZ)
