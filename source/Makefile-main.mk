@@ -354,7 +354,7 @@ mfrdsk: $(BINDIR)mfr.dsk
 
 export BANK_SWITCH_CODE_ADDR := 32720 # 7FD0h
 
-rc2014dr.rel: rc2014dr.mac cfdrv.mac embinc.mac
+rc2014dr.rel: rc2014dr.mac cfdrv.mac ch376.mac embinc.mac
 rcembdrv.rel: rcembdrv.mac embinc.mac
 
 $(BLDDIR)rc2014dr.hex: rc2014dr.rel

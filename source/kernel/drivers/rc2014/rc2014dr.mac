@@ -249,6 +249,7 @@ DRV_INIT2:
 
 	PUSH	IX
 
+	CALL	DRV_INIT_CH376
 	CALL	DRV_INIT_CF
 
 	POP	IX
@@ -914,6 +915,7 @@ no_rest:
 	jr	div_loop
 
 	include		cfdrv.mac
+	include		ch376.mac
 
 ;-----------------------------------------------------------------------------
 ;

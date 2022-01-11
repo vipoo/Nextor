@@ -1,0 +1,261 @@
+
+
+; CH376 commands
+CH_CMD_GET_IC_VER 	EQU 	001H
+CH_CMD_SET_SPEED 	EQU 	004H
+CH_CMD_RESET_ALL 	EQU 	005H
+CH_CMD_CHECK_EXIST 	EQU 	006H
+CH_CMD_SET_RETRY 	EQU 	00BH
+CH_CMD_SET_SD0_INT 	EQU 	00BH
+CH_CMD_DELAY_100US 	EQU 	00FH
+CH_CMD_SET_USB_ADDR 	EQU 	013H
+CH_CMD_SET_USB_MODE 	EQU 	015H
+CH_CMD_TEST_CONNECT 	EQU 	016H
+CH_CMD_ABORT_NAK 	EQU 	017H
+CH_CMD_GET_STATUS 	EQU 	022H
+CH_CMD_DIRTY_BUFFER 	EQU 	025H
+CH_CMD_RD_USB_DATA0 	EQU 	027H
+CH_CMD_WR_HOST_DATA 	EQU 	02CH
+CH_CMD_SET_FILE_NAME 	EQU 	02FH
+CH_CMD_DISK_CONNECT 	EQU 	030H
+CH_CMD_DISK_MOUNT 	EQU 	031H
+CH_CMD_OPEN_FILE 	EQU 	032H
+CH_CMD_FILE_ENUM_GO 	EQU 	033H
+CH_CMD_FILE_CLOSE 	EQU 	036H
+CH_CMD_BYTE_READ 	EQU 	03AH
+CH_CMD_BYTE_RD_GO 	EQU 	03BH
+CH_CMD_CLR_STALL 	EQU 	041H
+CH_CMD_SET_ADDRESS 	EQU 	045H
+CH_CMD_GET_DESCR 	EQU 	046H
+CH_CMD_SET_CONFIG 	EQU 	049H
+CH_CMD_SEC_LOCATE 	EQU 	04AH
+CH_CMD_SEC_READ 	EQU 	04BH
+CH_CMD_SEC_WRITE 	EQU 	04CH
+CH_CMD_ISSUE_TKN_X 	EQU 	04EH
+CH_CMD_DISK_READ 	EQU 	054H
+CH_CMD_DISK_RD_GO 	EQU 	055H
+CH_CMD_DISK_WRITE 	EQU 	056H
+CH_CMD_DISK_WR_GO 	EQU 	057H
+
+CH_COMMAND_PORT		EQU	1
+CH_STATUS_PORT		EQU	1
+CH_DATA_PORT		EQU	0
+
+; RETURNS Z IF NOT PRESENT
+; RETURNS NZ IF PRESENT
+DRV_INIT_CH376:	
+	CALL	CH_PROBE
+	JR	Z, CH_FOUND
+
+CH_NOT_FOUND:
+	LD	DE, CH_NOT_FOUND_MSG
+	CALL	PRINT
+	XOR	A
+	RET
+
+CH_FOUND:
+	; CALL	CH_INIT
+	; JR	NZ, CH_NOT_FOUND
+
+	LD	DE, CH_FOUND_MSG
+	CALL	PRINT
+
+	OR	255
+	RET
+
+CH_PROBE:
+	ld	a, CH_CMD_RESET_ALL
+	out	(CH_COMMAND_PORT), a
+
+	ei
+	halt
+	halt
+
+	LD	A, 0B2H
+	CALL	CH_CHK_EXISTS
+	RET	NZ
+	LD	A, 0AAH
+
+CH_CHK_EXISTS:
+	LD	B, A
+	LD	A, CH_CMD_CHECK_EXIST
+	; CALL	CH_WAIT_RDY
+	; EX	(SP), HL
+	; EX	(SP), HL
+	; EX	(SP), HL
+	; EX	(SP), HL
+        OUT	(CH_COMMAND_PORT), A
+	LD	A, B
+	XOR	0FFH
+        OUT 	(CH_DATA_PORT), A
+	; EX	(SP), HL
+	; EX	(SP), HL
+	; EX	(SP), HL
+	; EX	(SP), HL
+        IN 	A, (CH_DATA_PORT)
+	CP	B
+	RET
+
+CH_WAIT_RDY:
+	PUSH	AF
+CH_WAIT_RDY1:
+	IN	A, (CH_STATUS_PORT)
+	AND	010H
+	JR	NZ, CH_WAIT_RDY1    
+	POP 	AF
+	RET
+
+
+CH_NOT_FOUND_MSG:
+	DB	"CH376:           NOT PRESENT", 13, 10, 0
+CH_FOUND_MSG:
+	DB	"CH376:           PRESENT", 13, 10, 0
+
+CH_DRV_NAME:
+	DB	"CH376"
+
+CH_DRV_NAME_LEN	EQU	$-CH_DRV_NAME
+
+
+; 	; call	INIWORK		; Initialize the work-area
+
+; 	; initialize CH376s
+; 	; ============================================
+; 	; print welcome message
+; 	ld	de, TXT_START
+; 	call	PRINT
+
+; 	; ; enable the low-level MSXUSB driver
+; 	; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; 	; call USBHOST_INIT
+
+; 	; ; reset CH376s
+;     	; call CH_RESET
+; 	; ; wait ~250ms
+; 	; ld bc, WAIT_ONE_SECOND/4
+; 	; call WAIT
+	
+; 	; check if CH376s in the cartridge slot
+; 	call CH_HW_TEST
+; 	jr nc, _HW_TEST_OKAY
+; 	ld hl, TXT_NOT_FOUND
+; 	call PRINT
+; 	ret
+
+; _HW_TEST_OKAY:
+; 	ld a,(ix+WRKAREA.STATUS)
+;     set 0,a
+;     ld (ix+WRKAREA.STATUS),a
+;    	ld hl, TXT_FOUND
+;     call PRINT
+
+; 	; check and display CH376s IC/firmware version
+; 	ld hl, TXT_IC_VERSION
+; 	call PRINT
+; 	call CH_IC_VERSION
+; 	add a, '0'
+; 	call CHPUT
+; 	ld hl, TXT_NEWLINE
+; 	call PRINT
+
+; 	; reset USB bus and device
+;     call USB_HOST_BUS_RESET
+
+; 	; enumerate and initialise USB devices
+; 	push ix
+; 	call FN_CONNECT
+; 	pop ix
+; 	or a
+; 	jp nz, _USB_MODE_OKAY
+;     ld hl, TXT_DEVICE_CHECK_NOK
+;     call PRINT
+;     ret
+; _USB_MODE_OKAY:
+; 	push af
+; 	ld a, "+"
+; 	call CHPUT
+; 	pop af
+; 	push af
+; 	add 0x30
+; 	call CHPUT
+; 	pop af
+; 	ld a,(ix+WRKAREA.STATUS)
+;     set 1,a
+;     ld (ix+WRKAREA.STATUS),a
+;     ld hl, TXT_DEVICE_CHECK_OK
+;     call PRINT
+; 	ld a, (ix+WRKAREA.STORAGE_DEVICE_INFO.DEVICE_ADDRESS)
+; 	and a
+; 	jr nz, _FOUND_
+;     ld hl, TXT_STORAGE_CHECK_NOK
+;     call PRINT
+;     ret
+; _FOUND_:
+; 	ld hl, TXT_STORAGE_CHECK_OK
+;     call PRINT
+; 	; start communicating with SCSI device
+; 	call SCSI_MAX_LUNS
+; 	ret c
+; 	call SCSI_INIT
+; 	call SCSI_INQUIRY
+; 	jr nc, _INQUIRY_OKAY
+; 	ld hl, TXT_INQUIRY_NOK
+; 	call PRINT
+; 	ret
+; _INQUIRY_OKAY:
+; 	push ix
+; 	;
+; 	ld hl, TXT_INQUIRY_OK
+; 	call PRINT
+; 	ld bc, WRKAREA.SCSI_DEVICE_INFO.VENDORID
+; 	call WRKAREAPTR
+; 	ld hl, ix
+; 	call PRINT
+; 	ld hl, TXT_INQUIRY_OK
+; 	call PRINT
+; 	ld bc, WRKAREA.SCSI_DEVICE_INFO.PRODUCTID
+; 	call WRKAREAPTR
+; 	ld hl, ix
+; 	call PRINT
+; 	;
+; 	pop ix
+; 	ld a,(ix+WRKAREA.STATUS)
+;     set 2,a
+;     ld (ix+WRKAREA.STATUS),a
+
+; 	ld hl, TXT_TEST_START
+; 	call PRINT
+; _SCSI_TEST_AGAIN:
+; 	call SCSI_TEST
+; 	jr nc, _SCSI_TEST_OKAY
+; 	call SCSI_REQUEST_SENSE
+; 	jr _SCSI_TEST_AGAIN
+; _SCSI_TEST_OKAY:
+; 	ld hl, TXT_TEST_OK
+; 	call PRINT
+; 	; return status disk present but changed
+; 	ld a,(ix+WRKAREA.STATUS)
+;     set 3,a
+; 	set 4,a
+; 	set 5,a
+;     ld (ix+WRKAREA.STATUS),a
+
+; 	RET
+
+; ; --------------------------------------
+; ; CH_RESET
+; ;
+; ; Input: none
+; ; Output: none
+; CH_RESET:
+;     ld a, CH_CMD_RESET_ALL
+;     CH_SEND_COMMAND   
+;     CH_END_COMMAND 
+;     ret
+
+; ; -----------------------------------------------------------------------------
+; ; HW_TEST: Check if the USB host controller hardware is operational
+; ; -----------------------------------------------------------------------------
+; ; Output: Cy = 0 if hardware is operational, 1 if it's not
+
+; CH_HW_TEST:
