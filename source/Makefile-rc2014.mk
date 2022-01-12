@@ -14,7 +14,10 @@ ifndef BUILD_TYPE
 override export BUILD_TYPE = std
 endif
 
-export SRC_ROOT_DIR=$(PWD)
+
+mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
+export SRC_ROOT_DIR := $(patsubst %/,%,$(dir $(mkfile_path)))
+
 export WRK_DIR=../bin/working
 KERNEL_WRK_DIR=$(WRK_DIR)/kernel
 COMMAND_WRK_DIR=$(WRK_DIR)/command
@@ -31,6 +34,12 @@ CMD_WRK_DIR=$(COMMAND_WRK_DIR)/command
 CHKDSK_WRK_DIR=$(COMMAND_WRK_DIR)/chkdsk
 DRV_SUNRISE_WRK_DIR=$(KERNEL_WRK_DIR)/drivers/sunriseide
 
+BINDIR := ../bin/
+BLDDIR := ../bin/working/$(BUILD_TYPE)/
+VPATH = ../bin/working/$(BUILD_TYPE)/
+BUILD_TOOLS_SRC_DIR := ../buildtools/sources/
+LINUX_TOOLS_DIR := ../linuxtools/
+
 SUBMAKE := $(MAKE) -C $(WRK_DIR) --no-print-directory
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
@@ -42,18 +51,19 @@ export VERSION=2.1.1
 
 export PATH := $(PWD)/../linuxtools/:$(PWD)/../linuxtools/prereq/sdcc-4.0.0/bin/:$(PWD)/../linuxtools/prereq/hex2bin/:$(PWD)/../linuxtools/prereq/cpm:$(PATH)
 
-.PHONY: all
-all: rc2014 sunrise hdddsk
-	@
-
-PREP := $(shell $(PWD)/../linuxtools/prep.sh > /dev/null; echo "$$?")
+PREP := $(shell $(SRC_ROOT_DIR)/../linuxtools/prep.sh > /dev/null; echo "$$?")
 ifneq ($(PREP),0)
   $(error prep.sh failed.)
 endif
 
+.PHONY: all
+all: tools $(BLDDIR)nextor.sys $(BLDDIR)command2.com $(BLDDIR)fixdisk.com $(BLDDIR)chkdsk.com $(LINUX_TOOLS_DIR)mknexrom $(BLDDIR)dos250ba.dat
+	@
+
 include Makefile-main.mk
 
 ## Remove the bin directory
+.PHONY: clean
 clean:
 	@rm -rf ../bin
 	rm -f ../linuxtools/mknexrom

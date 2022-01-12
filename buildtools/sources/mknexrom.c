@@ -172,7 +172,6 @@ int main(int argc, char* argv[])
 	
 	//* Get command line parameters
 
-	printf("\r\n");
 	if(argc<3) {
 		DisplayInfo();
 		DoExit(0);

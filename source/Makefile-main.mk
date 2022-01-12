@@ -1,11 +1,5 @@
 include Makefile-rules.mk
 
-BINDIR := ../bin/
-BLDDIR := ../bin/working/$(BUILD_TYPE)/
-VPATH = ../bin/working/$(BUILD_TYPE)/
-BUILD_TOOLS_SRC_DIR := ../buildtools/sources/
-LINUX_TOOLS_DIR := ../linuxtools/
-
 ## Main targets
 
 # --------------------------------------------------------------------------------------
@@ -266,15 +260,15 @@ $(BLDDIR)b6.bin: b6.hex
 $(BLDDIR)dos250ba.dat: b0.bin b1.bin b2.bin b3.bin b4.bin b5.bin b6.bin fdisk.dat fdisk2.dat b4rd.bin
 	@cd $(BLDDIR)
 	cat b0.bin b1.bin b2.bin b3.bin b4.bin b5.bin b6.bin > dos250ba.dat
-	dd conv=notrunc if=dos250ba.dat of=doshead.bin bs=1 count=255
-	dd conv=notrunc if=doshead.bin of=dos250ba.dat bs=1 count=255 seek=16k
-	dd conv=notrunc if=doshead.bin of=dos250ba.dat bs=1 count=255 seek=32k
-	dd conv=notrunc if=doshead.bin of=dos250ba.dat bs=1 count=255 seek=64k
-	dd conv=notrunc if=doshead.bin of=dos250ba.dat bs=1 count=255 seek=96k
-	dd conv=notrunc if=fdisk.dat of=dos250ba.dat bs=1 count=16000 seek=82176
-	dd conv=notrunc if=fdisk2.dat of=dos250ba.dat bs=1 count=8000 seek=98560
-	dd conv=notrunc if=doshead.bin of=dos250ba.dat bs=1 count=255 seek=80k
-	dd conv=notrunc if=b4rd.bin of=dos250ba.dat bs=1 count=15 seek=65664
+	dd status=none conv=notrunc if=dos250ba.dat of=doshead.bin bs=1 count=255
+	dd status=none conv=notrunc if=doshead.bin of=dos250ba.dat bs=1 count=255 seek=16k
+	dd status=none conv=notrunc if=doshead.bin of=dos250ba.dat bs=1 count=255 seek=32k
+	dd status=none conv=notrunc if=doshead.bin of=dos250ba.dat bs=1 count=255 seek=64k
+	dd status=none conv=notrunc if=doshead.bin of=dos250ba.dat bs=1 count=255 seek=96k
+	dd status=none conv=notrunc if=fdisk.dat of=dos250ba.dat bs=1 count=16000 seek=82176
+	dd status=none conv=notrunc if=fdisk2.dat of=dos250ba.dat bs=1 count=8000 seek=98560
+	dd status=none conv=notrunc if=doshead.bin of=dos250ba.dat bs=1 count=255 seek=80k
+	dd status=none conv=notrunc if=b4rd.bin of=dos250ba.dat bs=1 count=15 seek=65664
 
 # --------------------------------------------------------------------------------------
 # DRIVER: sunrise
@@ -349,116 +343,11 @@ $(BINDIR)mfr.dsk: $(BLDDIR)mfr.dsk
 mfrdsk: $(BINDIR)mfr.dsk
 	@
 
-# --------------------------------------------------------------------------------------
-# DRIVER: rc2014 using ASCII16 Banking
-
-export BANK_SWITCH_CODE_ADDR := 32720 # 7FD0h
-
-rc2014dr.rel: rc2014dr.mac cfdrv.mac embinc.mac
-rcembdrv.rel: rcembdrv.mac embinc.mac
-
-$(BLDDIR)rc2014dr.hex: rc2014dr.rel
-	@cd $(BLDDIR)
-	l80.sh rc2014dr.hex /P:4100,RC2014DR,RC2014DR/N/X/Y/E
-	cleancpmfile.sh rc2014dr.sym
-	cat rc2014dr.sym
-	DRVEND=$$(getsymb.sh rc2014dr.sym DRVEND)
-	if (($${DRVEND} > $${BANK_SWITCH_CODE_ADDR})); then
-		printf "\e[31mDriver code overflow - driver bank has exceeded 16k\r\n\e[0m"
-		exit 1
-	fi
-
-$(BLDDIR)rcembdrv.hex: rcembdrv.rel
-	@cd $(BLDDIR)
-	l80.sh rcembdrv.hex /P:4100,RCEMBDRV,RCEMBDRV/N/X/Y/E
-	cleancpmfile.sh rcembdrv.sym
-	SECEND=$$(getsymb.sh rcembdrv.sym SECEND)
-	if (($${SECEND} > $${BANK_SWITCH_CODE_ADDR})); then
-		printf "\e[31mDriver code overflow - driver bank has exceeded 16k\r\n\e[0m"
-		exit 1
-	fi
-
-$(BLDDIR)rcembdrv.sym: rcembdrv.hex
-	@if [ ! -f "$(BLDDIR)rcembdrv.hex" ]; then
-		echo "$(BLDDIR)rcembdrv.hex failed to be built"
-		exit 1
-	fi
-	@touch $(BLDDIR)rcembdrv.hex
-
-$(BLDDIR)rc2014dr.bin: rc2014dr.hex
-	@cd $(BLDDIR)
-	rm -f rc2014dr.bin
-	hex2bin -s 4000 rc2014dr.hex
-	filesize=$$(stat -c%s "rc2014dr.bin")
-	if ((filesize > 16484 )); then
-		echo -e "\r\nError: rc2014dr exceeded size of 16k"
-		exit 1
-	fi
-
-$(BLDDIR)rcembdrv.bin: rcembdrv.hex
-	@cd $(BLDDIR)
-	rm -f rcembdrv.bin
-	hex2bin -s 4000 rcembdrv.hex
-	filesize=$$(stat -c%s "rcembdrv.bin")
-	if ((filesize > 16484 )); then
-		echo -e "\r\nError: rcembdrv exceeded size of 16k"
-		exit 1
-	fi
-
 .PRECIOUS: %.hex
-
-$(BLDDIR)rc2014-driver-with-sectors.bin: $(BLDDIR)rc2014dr.bin $(BLDDIR)rcembdrv.bin $(BLDDIR)fdd.dsk
-	@cd $(BLDDIR)
-	SECSTRT=$$(getsymb.sh rcembdrv.sym SECSTR)
-	DATSIZ=$$(getsymb.sh rcembdrv.sym DATSIZ)
-	dd if=/dev/zero of=rc2014-driver-with-sectors.bin bs=16k count=19 seek=0
-	dd conv=notrunc if=rc2014dr.bin of=rc2014-driver-with-sectors.bin bs=8k count=1 seek=0
-	BNK_START_ADDR=$$((SECSTRT-16384))
-	for i in {1..18}
-	do
-		BNK_ADDR=$$(($$BNK_START_ADDR + (16384*($$i))))
-		SKIP=$$(($$DATSIZ*($$i-1)))
-		dd conv=notrunc if=rcembdrv.bin of=rc2014-driver-with-sectors.bin bs=8k count=1 seek=$$((2*$$i))
-		dd conv=notrunc if=fdd.dsk of=rc2014-driver-with-sectors.bin bs=1 count=$${DATSIZ} seek=$$BNK_ADDR skip=$$SKIP
-	done
-
-$(BLDDIR)ymchgbnk.hex: ymchgbnk.rel
-	@cd $(BLDDIR)
-	l80.sh ymchgbnk.hex /P:7fd0,YMCHGBNK,YMCHGBNK/N/X/Y/E
-
-$(BLDDIR)ymchgbnk.bin: ymchgbnk.hex
-	@cd $(BLDDIR)
-	rm -f ymchgbnk.bin
-	hex2bin -s 7FD0 ymchgbnk.hex
-
-$(BLDDIR)nextor-$(VERSION).rom: dos250ba.dat rc2014-driver-with-sectors.bin ymchgbnk.bin $(LINUX_TOOLS_DIR)mknexrom
-	@cd $(BLDDIR)
-	mknexrom dos250ba.dat nextor-$(VERSION).rom -d:rc2014-driver-with-sectors.bin -m:ymchgbnk.bin
-
-$(BINDIR)$(BUILD_TYPE).nextor-$(VERSION).rom: $(BLDDIR)nextor-$(VERSION).rom
-	@cp -u $(BLDDIR)nextor-$(VERSION).rom $(BINDIR)$(BUILD_TYPE).nextor-$(VERSION).rom
-
-# --------------------------------------------------------------------------------------
-# FLOPPY DISK IMAGE FOR RC2014 DRIVER
-
-## Build a FAT12 floppy disk image containing nextor.sys, command2.com
-EXTRAS = $(wildcard ../../extras/*) $(wildcard ../../extras/**/*)
-.PHONY: $(BLDDIR)fdd.dsk
-$(BLDDIR)fdd.dsk: $(BLDDIR)nextor.sys $(BLDDIR)command2.com $(BLDDIR)fixdisk.com $(BLDDIR)chkdsk.com $(EXTRAS) $(TOOLS_LIST) $(BLDDIR)rcembdrv.sym
-	@cd $(BLDDIR)
-	DATSIZ=$$(getsymb.sh rcembdrv.sym DATSIZ)
-	rm -f fdd.dsk
-	dd if=/dev/zero of=fdd.dsk bs=$$(($$DATSIZ*18)) count=1
-	mkfs.vfat -F 12 -f 1 fdd.dsk
-	mmd -i fdd.dsk system
-	mcopy -i fdd.dsk *.com ::/system/
-	mmove -i fdd.dsk ::/system/command2.com ::/
-	mcopy -i fdd.dsk nextor.sys ::/
-	mcopy -i fdd.dsk ../../../extras/* ::/
 
 # --------------------------------------------------------------------------------------
 # mknexrom
 
-
 $(LINUX_TOOLS_DIR)mknexrom: $(BUILD_TOOLS_SRC_DIR)mknexrom.c
 	@gcc $(BUILD_TOOLS_SRC_DIR)mknexrom.c -o $(LINUX_TOOLS_DIR)mknexrom
+
