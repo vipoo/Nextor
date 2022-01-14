@@ -104,6 +104,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #define BANK_SIZE 16384					//Size of each ROM bank
 //#define BASE_BANK_COUNT 7				//Number of kernel banks
@@ -128,6 +129,7 @@
 void DisplayInfo();
 int GetFileSize(FILE* file);
 int IsParam(char* arg, char paramLetteR);
+int IsSwitch(const char* arg, const char paramLetter);
 void DoExit(int code);
 
 FILE* baseFile=NULL;
@@ -137,6 +139,7 @@ FILE* mapperFile=NULL;
 FILE* extraFile=NULL;
 
 int baseBankCount;
+bool quiteMode = false;
 
 int main(int argc, char* argv[])
 {
@@ -197,7 +200,9 @@ int main(int argc, char* argv[])
 			extraFilename=argv[i]+3;
 		} else if (IsParam(argv[i], '8')) {
 			_First8KMappingAddress=argv[i]+3;
-		} else if (IsParam(argv[i], 'k')) {
+		} else if(IsSwitch(argv[i], 'q')) {
+			quiteMode = true;
+		}	else if (IsParam(argv[i], 'k')) {
             hasBootKeys = 1;
             sscanf(argv[i]+3, "%4x", &bootKeys);
             if(bootKeys == 0) {
@@ -509,13 +514,13 @@ int main(int argc, char* argv[])
 		}
     }
 
-	//* Done
-
-    if(modifyOriginalFile) {
-        printf("ROM file %s updated successfully.", baseFilename);
-    } else {
-    	printf("ROM file %s created successfully.", newFilename);
-    }
+		//* Done
+		if (!quiteMode)
+			if(modifyOriginalFile) {
+					printf("ROM file %s updated successfully.", baseFilename);
+			} else {
+				printf("ROM file %s created successfully.", newFilename);
+			}
 
 	DoExit(0);
 }
@@ -565,6 +570,11 @@ int GetFileSize(FILE* file)
 int IsParam(char* arg, char paramLetter)
 {
 	return arg[0] == SWITCH_CHAR && ((arg[1] | 0x20) == (paramLetter | 0x20)) && arg[2]==':';
+}
+
+int IsSwitch(const char* arg, const char paramLetter)
+{
+	return arg[0] == SWITCH_CHAR && arg[1] == paramLetter;
 }
 
 void DoExit(int code)

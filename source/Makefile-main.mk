@@ -293,7 +293,7 @@ $(BLDDIR)srchgbnk.bin: srchgbnk.hex
 
 $(BLDDIR)nextor-$(VERSION).sunriseide.rom: dos250ba.dat sunrise.bin srchgbnk.bin $(LINUX_TOOLS_DIR)mknexrom
 	@cd $(BLDDIR)
-	mknexrom dos250ba.dat nextor-$(VERSION).sunriseide.rom -d:sunrise.bin -m:srchgbnk.bin
+	mknexrom -q dos250ba.dat nextor-$(VERSION).sunriseide.rom -d:sunrise.bin -m:srchgbnk.bin
 	cp -u nextor-$(VERSION).sunriseide.rom ../
 
 ## Build the sunrise rom image
@@ -312,7 +312,7 @@ $(BLDDIR)mfchgbnk.bin: mfchgbnk.hex
 
 $(BLDDIR)mfr.nextor-$(VERSION).rom: dos250ba.dat driver-1slot.dat mfchgbnk.bin $(LINUX_TOOLS_DIR)mknexrom
 	@cd $(BLDDIR)
-	mknexrom dos250ba.dat mfr.nextor-$(VERSION).rom -d:driver-1slot.dat -m:mfchgbnk.bin
+	mknexrom dos250ba.dat mfr.nextor-$(VERSION).rom -q -d:driver-1slot.dat -m:mfchgbnk.bin
 
 $(BINDIR)mfr.nextor-$(VERSION).rom: $(BLDDIR)mfr.nextor-$(VERSION).rom
 	@cp -u $(BLDDIR)mfr.nextor-$(VERSION).rom $(BINDIR)mfr.nextor-$(VERSION).rom
