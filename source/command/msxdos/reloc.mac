@@ -59,10 +59,10 @@ SERIAL::DEFB	0,0,0,0		; Serial number, may be patched by OEM.
 ;
 	DEFB	CR ;,LF				; Message at file start in case
 MSG:
-	DEFB	'NEXTOR.SYS version '		;   someone TYPEs the file.
-	DEFB	VERSION##+'0', '.', RELEASE##/256+'0', RELEASE##+'0',CR,LF
 
 iff RC2014
+	DEFB	'NEXTOR.SYS ?? version '		;   someone TYPEs the file.
+	DEFB	VERSION##+'0', '.', RELEASE##/256+'0', RELEASE##+'0',CR,LF
 	DEFB	'Copyright ('
 	DEFB	CRYEAR##/1000 MOD 10 +'0'
 	DEFB	CRYEAR##/ 100 MOD 10 +'0'
@@ -70,7 +70,11 @@ iff RC2014
 	DEFB	CRYEAR##      MOD 10 +'0'
 	DEFB	') Konamiman',CR,LF
 	DEFB	CR,LF
+else
+	DEFB	'NEXTOR.SYS:      '		;   someone TYPEs the file.
+	DEFB	VERSION##+'0', '.', RELEASE##/256+'0', RELEASE##+'0',CR,LF
 endif
+
 	DEFB	1AH
 ;
 ;
