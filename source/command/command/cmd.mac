@@ -1457,7 +1457,7 @@ _RDSLT:		LD	A,(MASTER_SLOT##)
 ;
 ;
 VERMSG:		DEFB	'COMMAND2.COM version '
-		DEFB	VERSION##+'0', '.', RELEASE##/256+'0', RELEASE##+'0'
+		DEFB	VERSION##+'0', '.', RELEASE##/256+'0', RELEASE##+'0', '.1'
 		DEFB	CR,LF
 		DEFB	'Copyright '
 		DEFB	CRYEAR##/1000 MOD 10 +'0'
