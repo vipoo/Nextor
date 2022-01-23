@@ -77,6 +77,8 @@ NO_PRIMARY:
 	ld	(iy+7),h
 
 DEV_LOOP:
+	ld	a,"K"
+	ld	(CAPAUNIT),a			; default size of kilobytes
 
 	;* Get and display basic information
 
