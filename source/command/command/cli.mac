@@ -1967,6 +1967,8 @@ if 1
 UPPER$::	DEFB	'UPPER',0
 REDIR$::	DEFB	'REDIR',0
 EXPERT$::	DEFB	'EXPERT',0
+_BOOT$::	DEFB	"_BOOT", 0
+BOB$::		DEFB	"BOB", 0
 endif
 ;
 TEMPFN:		DEFB	'%PIPE00'	; Last digit gets created by the

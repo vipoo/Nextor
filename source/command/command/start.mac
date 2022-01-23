@@ -593,8 +593,9 @@ KHELPSTR::
 					;   patched to boot drive).
 ;
 endif
-TEMPSTR:DEFB	'A:\',0 		; String for TEMP directory (A: gets
+TEMPSTR:	DEFB	'A:\',0 		; String for TEMP directory (A: gets
 					;   patched to booting drive).
+BOOTSTR:	DEFB	'A', 0
 ;
 REBLEN	EQU	$-REBOOT	; Size of fixed address re-boot code.
 ;
@@ -666,6 +667,7 @@ if 1	;v230
 endif
 	LD	(COMSTR),A	; And for re-loading COMMAND2.COM.
 	LD	(TEMPSTR),A	; And for the TEMP environment string.
+	LD	(BOOTSTR), A
 ;
 	LD	HL,_BIOS##	; Save jump vectors etc. at bottom of memory
 	LD	DE,VECTORS##	;   so that they can be restored when COMMAND
@@ -867,6 +869,10 @@ if 1
 	LD	HL,REDIR$##
 	LD	DE,ON$##
 	CALL	SET?		; Set up REDIR if not already set up.
+
+	LD	HL, _BOOT$##
+	LD	DE, BOOTSTR
+	CALL	SET?
 ;
 endif
 	LD	DE,BUFF##	; Un-define the PROGRAM and PARAMETERS
