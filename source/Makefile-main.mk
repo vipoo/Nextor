@@ -30,9 +30,9 @@ $(BLDDIR)nextork.sys: nextork.hex
 # --------------------------------------------------------------------------------------
 # command2.com
 
-$(BLDDIR)command2.hex: codes.rel data.rel start.rel cli.rel cmd.rel copy.rel dirs.rel cmdfiles.rel io.rel jtext.rel cmdmsgs.rel cmdmisc.rel var.rel ver.rel
+$(BLDDIR)command2.hex: codes.rel data.rel start.rel cli.rel cmd.rel copy.rel dirs.rel cmdfiles.rel io.rel jtext.rel cmdmsgs.rel cmdmisc.rel var.rel cmdver.rel
 	@cd $(BLDDIR)
-	@l80.sh command2.hex /P:100,CODES,DATA,START,CLI,CMD,COPY,DIRS,CMDFILES,IO,JTEXT,CMDMSGS,CMDMISC,VAR,VER,COMMAND2/n/x/y/e
+	@l80.sh command2.hex /P:100,CODES,DATA,START,CLI,CMD,COPY,DIRS,CMDFILES,IO,JTEXT,CMDMSGS,CMDMISC,VAR,CMDVER,COMMAND2/n/x/y/e
 
 # --------------------------------------------------------------------------------------
 # chkdsk.com
