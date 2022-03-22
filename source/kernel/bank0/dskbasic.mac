@@ -1932,6 +1932,12 @@ GET_HANDLE_0:
 	pop	hl
 	ret
 
+CHECK_KILLDSKIO:
+	ld a,(MFLAGS##)
+	and	16	;KILLD
+	jp nz,JSNERR
+	ret
+
 if	1
 	subttl	DSKI$/DSKO$
 ;
@@ -1939,6 +1945,7 @@ if	1
 ;	DSKO$ <drive_number>,<sector_number>
 ;
 $HOOK	DSKI$
+	call CHECK_KILLDSKIO
 	call	REMHOK		;remove hook return
 	call	CHRGET		;skip over current token
 	SYNCHK	'('
@@ -1955,6 +1962,7 @@ $HOOK	DSKI$
 	jr	DSKO$1		;perform disk input
 ;
 $HOOK	DSKO$
+	call CHECK_KILLDSKIO
 	call	REMHOK		;remove hook return
 	call	GET_PARAM	;get drive and sector
 	call	CHRGOT		;end of statement?
