@@ -318,14 +318,14 @@ retry_dos2:
 ;
 msxdos_bootok:
 	ld	de,100h
-	ld	hl,3F00h			;Try to read the file in at
-	ld	c,_READ##			; 100h up to the top of
+	ld	hl,3F00h		;Try to read the file in at
+	ld	c,_READ##		; 100h up to the top of
 	push	bc			; page-0.
 	call	BOOT_BDOS
 	pop	bc
 	push	af
 	ld	c,_CLOSE##
-	call	BOOT_BDOS			;Close the file handle
+	call	BOOT_BDOS		;Close the file handle
 	pop	af
 	jr	nz,msxdos_fail		;Jump if the read was no good
 ;
@@ -341,7 +341,7 @@ endif
 	jp	100h			;Start up MSXDOS.SYS
 ;
 msxdos_fail:
-	ret
+		ret
 ;
 ;
 BOOT_NAME:		db	"\NEXTOR.SYS",0
