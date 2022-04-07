@@ -754,10 +754,23 @@ EXB_NEX:
 ;
 	exx
 	ex	af,af'
+
 	ld	hl,EXB_RAM
 	ld	de,($SECBUF##)
 	ld	bc,EXB_RAM_END-EXB_RAM
 	ldir
+
+	ld	hl, +(EXB_SLOT_RESTORE+1)-EXB_RAM_END
+	add	hl, de
+	ld	c, l
+	ld	b, h
+
+	ld	de, +(EXB_SLOT_BACKUP+1)-(EXB_SLOT_RESTORE+1)
+	add	hl, de
+	ld	(hl), c
+	inc	hl
+	ld	(hl), b
+
 	ex	af,af'
 	exx
 	ld	ix,($SECBUF##)
@@ -787,8 +800,34 @@ EXB_LOOP:
 	push	bc
 	push	de
 	push	hl
+
+	ld	a, (ix)
+	add	a, a
+	jr	nc, EXB_SKIP_BACKUP
+
+	rrca
+	and	3
+	ld	e, a
+
+	ld	hl, SLTTBL
+	ld	d, 0
+	add	hl, de
+	ld	a, (hl)
+	and	0Ch
+	or	e
+	or	80h
+	jr	EXB_SLOT_BACKUP
+
+EXB_SKIP_BACKUP:
+	xor	a
+
+EXB_SLOT_BACKUP:
+	ld	(EXB_SLOT_RESTORE + 1), a
+
+
     ld a,(ix)
     and 10001111b
+
    	ld	h,40h
 	call	ENASLT
 	ld	hl,DV_EXTBIO##
@@ -801,6 +840,28 @@ EXB_LOOP:
 	pop	bc
 	pop	af
 	call	CALDRV##
+
+	push	af
+
+EXB_SLOT_RESTORE:
+	ld	a, 00h
+	or	a
+	jr	z, EXB_SKIP_RESTORE
+
+	push	bc
+	push	de
+	push	hl
+
+	ld	h, 40h
+	call	ENASLT
+
+	pop	hl
+	pop	de
+	pop	bc
+
+EXB_SKIP_RESTORE:
+
+	pop	af
 
 	pop	iy
 	pop	ix
