@@ -755,26 +755,27 @@ EXB_NEX:
 	exx
 	ex	af,af'
 
-	ld	hl,EXB_RAM
 	ld	de,($SECBUF##)
+	push	de
+
+	ld	hl,EXB_RAM
 	ld	bc,EXB_RAM_END-EXB_RAM
 	ldir
 
 	ld	hl, +(EXB_SLOT_RESTORE+1)-EXB_RAM_END
 	add	hl, de
-	ld	c, l
-	ld	b, h
+	ex	de, hl
 
-	ld	de, +(EXB_SLOT_BACKUP+1)-(EXB_SLOT_RESTORE+1)
+	ld	hl, +(EXB_SLOT_BACKUP+1)-(EXB_SLOT_RESTORE+1)
 	add	hl, de
-	ld	(hl), c
+	ld	(hl), e
 	inc	hl
-	ld	(hl), b
+	ld	(hl), d
 
 	ex	af,af'
 	exx
-	ld	ix,($SECBUF##)
-	jp	(ix)
+
+	ret
 
 	;--- From here is copied to RAM
 EXB_RAM:
