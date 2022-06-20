@@ -802,31 +802,25 @@ EXB_LOOP:
 	push	de
 	push	hl
 
-	ld	a, (ix)
-	add	a, a
-	jr	nc, EXB_SKIP_BACKUP
+	ld	a,(ix)
+	ld	d,a
+	and	80h
+	jr	z,EXB_SLOT_BACKUP
 
-	rrca
+	ld	a,d
 	and	3
-	ld	e, a
-
-	ld	hl, SLTTBL
-	ld	d, 0
-	add	hl, de
-	ld	a, (hl)
+	ld	e,a
+	ld	hl,SLTTBL
+	add	a,l
+	ld	l,a
+	ld	a,(hl)
 	and	0Ch
 	or	e
 	or	80h
-	jr	EXB_SLOT_BACKUP
-
-EXB_SKIP_BACKUP:
-	xor	a
 
 EXB_SLOT_BACKUP:
-	ld	(EXB_SLOT_RESTORE + 1), a
-
-
-    ld a,(ix)
+	ld	(EXB_SLOT_RESTORE+1),a
+    ld a,d
     and 10001111b
 
    	ld	h,40h
@@ -845,15 +839,15 @@ EXB_SLOT_BACKUP:
 	push	af
 
 EXB_SLOT_RESTORE:
-	ld	a, 00h
+	ld	a,00h
 	or	a
-	jr	z, EXB_SKIP_RESTORE
+	jr	z,EXB_SKIP_RESTORE
 
 	push	bc
 	push	de
 	push	hl
 
-	ld	h, 40h
+	ld	h,40h
 	call	ENASLT
 
 	pop	hl
