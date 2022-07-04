@@ -7,6 +7,8 @@ DRV_START:
 
 TESTADD	equ	0F3F5h
 
+MASTER_ONLY equ 0
+
 ;-----------------------------------------------------------------------------
 ;
 ; Driver configuration constants
@@ -406,6 +408,9 @@ WAIT_RESET_END:
 	ld	a,1			;Flag the device
 	ld	(ix),a
 MASTER_CHECK1_END:
+
+if MASTER_ONLY eq 0
+
         ld      a,46			;Print dot
         call    CHPUT
 	
@@ -441,6 +446,8 @@ SLAVE_CHECK1_END:
 
 	ld      de,CRLF_S
         call    PRINT
+
+endif
 
 	;--- Get info and show the name for the MASTER
 
@@ -507,6 +514,8 @@ NODEV_MASTER:
 	call	PRINT
 	
 OK_MASTER:
+
+if MASTER_ONLY eq 0
 
 	;--- Get info and show the name for the SLAVE
 	
@@ -580,6 +589,8 @@ OK_SLAVE:
         xor     a
         ld      (IDE_DEVCTRL),a
 
+endif
+
 	jr	DRV_INIT_END
 
 INIT_NO_DEV:
@@ -592,8 +603,14 @@ INIT_NO_DEV:
 	call	PRINT
 	ld	de,NODEVS_S
 	call	PRINT
+
+if MASTER_ONLY eq 0
+
 	ld	de,SLAVE_S
 	call	PRINT
+
+endif
+
 	ld	de,NODEVS_S
 	call	PRINT
 	
@@ -1671,6 +1688,13 @@ CHECK_DEV_LUN:
 INFO_S:
 	db	"Sunrise IDE driver v"
 	db	VER_MAIN+"0",".",VER_SEC+"0",".",VER_REV+"0",13,10
+
+if MASTER_ONLY eq 1
+
+	db "Master device only edition",13,10
+
+endif
+
 	db	"(c) Konamiman  2009",13,10
 	db	"(c) Piter Punk 2014",13,10,13,10,0
 
@@ -1681,8 +1705,14 @@ NODEVS_S:
 	db	"Not found",13,10,0
 MASTER_S:
 	db	"Master device: ",0
+
+if MASTER_ONLY eq 0
+
 SLAVE_S:
 	db	"Slave device:  ",0
+
+endif
+
 CRLF_S:
 	db	13,10,0
 

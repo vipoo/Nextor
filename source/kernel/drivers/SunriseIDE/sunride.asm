@@ -9,6 +9,8 @@
 	ds	4100h-$,0		; DRV_START must be at 4100h
 DRV_START:
 
+MASTER_ONLY equ 0
+
 TESTADD	equ	0F3F5h
 
 TEMP_WORK equ 0C000h
@@ -551,6 +553,8 @@ DRV_INIT:
 	jr	z,INIT_MASTERFAIL	; Finish DEV_INIT
 
 .chkslave:
+	if MASTER_ONLY = 0
+
 	ld	de,SLAVE_S
 	ld	(TEMP_WORK+WRKTEMP.pDEVMSG),de
 	call	PRINT
@@ -571,6 +575,8 @@ DRV_INIT:
 	ld	a,M_DEV			; Select SLAVE
 	call	DETDEV
 	pop	ix
+
+	endif
 
 	; Reset all devices to finish
 END_DETECT:
@@ -3251,6 +3257,13 @@ INICHKSTOP:
 INFO_S:
 	db	13,"Sunrise compatible IDE driver v",27,'J'
 	db	VER_MAIN+$30,'.',VER_SEC+$30,'.',VER_REV+$30
+
+	if MASTER_ONLY = 1
+
+	db 13,10,"Master device only edition"
+
+	endif
+
 CRLF_S:	db	13,10,0
 COPYRIGHT_S:
 	db	"(c) 2009 Konamiman",13,10
@@ -3271,8 +3284,13 @@ INIT_S:
 	db	13,"Initializing : ",27,'J',0
 MASTER_S:
 	db	13,"Master device: ",27,'J',0
+
+	if MASTER_ONLY = 0
+
 SLAVE_S:
 	db	13,"Slave device : ",27,'J',0
+
+	endif
 
 OK_S:	db	"Ok",13,10,0
 ERROR_S:

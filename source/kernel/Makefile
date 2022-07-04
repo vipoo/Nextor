@@ -31,7 +31,7 @@ endef
 ###  MAIN RULE  ###
 ###################
 
-all: base ide ide-emu ascii8 ascii16 mfrsd flashjacks ocm
+all: base ide ide-masteronly ide-emu ide-masteronly-emu ascii8 ascii16 mfrsd flashjacks ocm
 
 TOOLS := M80 L80 LIB80 objcopy sdcc mknexrom dd
 
@@ -74,6 +74,26 @@ drivers/SunriseIDE/sunride.BIN: \
 	sjasm -c drivers/SunriseIDE/sunride.asm drivers/SunriseIDE/sunride.BIN
 
 
+### Sunrise IDE, normal ROM, master device only
+
+ide-masteronly: drivers/SunriseIDE/Nextor-$(VERSION).SunriseIDE.MasterOnly.ROM
+
+drivers/SunriseIDE/Nextor-$(VERSION).SunriseIDE.MasterOnly.ROM: \
+	nextor_base.dat \
+	drivers/SunriseIDE/sunride.masteronly.BIN \
+	drivers/SunriseIDE/CHGBNK.BIN
+
+	mknexrom nextor_base.dat $@ /d:drivers/SunriseIDE/sunride.masteronly.BIN /m:drivers/SunriseIDE/CHGBNK.BIN
+	$(call copy_to_bin,$@)
+
+drivers/SunriseIDE/sunride.masteronly.BIN: \
+	drivers/SunriseIDE/sunride.asm
+
+	sed 's/MASTER_ONLY equ 0/MASTER_ONLY equ 1/g' drivers/SunriseIDE/sunride.asm > drivers/SunriseIDE/sunride.masteronly.asm
+
+	sjasm -c drivers/SunriseIDE/sunride.masteronly.asm drivers/SunriseIDE/sunride.masteronly.BIN
+
+
 ### Sunrise IDE, ROM for emulators
 
 ide-emu: drivers/SunriseIDE/Nextor-$(VERSION).SunriseIDE.emulators.ROM
@@ -93,6 +113,30 @@ drivers/SunriseIDE/DRIVER.BIN: \
 
 	M80 -w drivers/SunriseIDE -p ../.. =DRIVER
 	L80 -w drivers/SunriseIDE -p ../../ /P:4100,DRIVER,DRIVER/N/X/Y/E
+	$(call hex2bin,$(patsubst %.BIN,%,$@))
+
+
+### Sunrise IDE, ROM for emulators, master device only
+
+ide-masteronly-emu: drivers/SunriseIDE/Nextor-$(VERSION).SunriseIDE.MasterOnly.emulators.ROM
+
+drivers/SunriseIDE/Nextor-$(VERSION).SunriseIDE.MasterOnly.emulators.ROM: \
+	nextor_base.dat \
+	drivers/SunriseIDE/DRVMONLY.BIN \
+	drivers/SunriseIDE/CHGBNK.BIN \
+	256.bytes
+
+	cat 256.bytes drivers/SunriseIDE/DRVMONLY.BIN > drivers/SunriseIDE/_driver.BIN
+	mknexrom nextor_base.dat $@ /d:drivers/SunriseIDE/_driver.BIN /m:drivers/SunriseIDE/CHGBNK.BIN
+	$(call copy_to_bin,$@)
+
+drivers/SunriseIDE/DRVMONLY.BIN: \
+	drivers/SunriseIDE/driver.mac
+
+	sed 's/MASTER_ONLY equ 0/MASTER_ONLY equ 1/g' drivers/SunriseIDE/driver.mac > drivers/SunriseIDE/drvmonly.mac
+
+	M80 -w drivers/SunriseIDE -p ../.. =DRVMONLY
+	L80 -w drivers/SunriseIDE -p ../../ /P:4100,DRVMONLY,DRVMONLY/N/X/Y/E
 	$(call hex2bin,$(patsubst %.BIN,%,$@))
 
 
