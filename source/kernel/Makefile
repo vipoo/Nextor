@@ -507,6 +507,7 @@ bank6/B6.HEX: \
 bank5/fdisk.dat bank5/fdisk2.dat: \
 	bank5/fdisk_crt0.rel \
 	bank5/fdisk.h \
+	bank5/fdisk.c \
 	$(patsubst %.dat,%.c,$@) \
 	bank5/drivercall.h \
 	bank5/drivercall.c \

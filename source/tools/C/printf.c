@@ -74,10 +74,19 @@ static void do_char(const char* buf, char c) __naked
   jp z,5
 #else
   ld a,e
-  jp z,CHPUT
+  jr z,DO_CHPUT
 #endif
 
   ld (hl),e
+  ret
+
+  ;CHPUT shouldnt modify IX and IY but on some buggy MSX models it does 
+DO_CHPUT:
+  push ix
+  push iy
+  call CHPUT
+  pop iy
+  pop ix
   ret
 
   __endasm;
