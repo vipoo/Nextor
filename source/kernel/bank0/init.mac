@@ -1056,7 +1056,7 @@ OVERRIDE:
 SLAVE:
 	ld	a,(KER250##+3)
 	or	a
-	ret	nz	;Return if four 2.50 kernels initialized already
+	ret	nz	;Return if four Nextor kernels initialized already
 
 	call	VALTBL		;get number of drives declared so far
 	ret	z		;no room is left
@@ -1522,42 +1522,10 @@ endif
 	ld	hl,(HIMEM##)	;save HIMEM
 	ld	(HIMSAV##),hl	;
 ;
-	ld	hl,H.TIMI	;Save the current setting of
-	push	hl		; the timer interrupt hook
-	ld	de,TIMI_SAVE##	; in our data area.
-	ld	bc,5
-	ldir
-;===== start add DOS2.50 (support MegaSCSI)
-	ld	hl,_TIME_IRQ##
+	ld	hl,TIMI_SAVE##
 	ld	de,@TIME_IRQ##
-	call	MYHOOK
-;===== end add DOS2.50
-	pop	hl		;Now set up an inter-slot call
+	call SAVE_AND_PATCH_HTIMI
 
-	;This "patch for MegaSCSI" was causing the kanji mode to not work
-	;(CALL KANJI hanging the computer)
-	;since the Kanji ROM timer interrupt routine assumes that the
-	;previous hook is either a RET or a RST 30h (not a CALL!)
-if 0
-;===== start mod DOS2.50 (support MegaSCSI)
-	ld	de,_TIME_IRQ##	; to our timer interrupt
-	ld	(hl),0;NOP	; routine in this ROM page.
-	inc	hl
-	ld	(hl),0CDh;CALL
-	inc	hl
-	ld	(hl),e
-	inc	hl
-	ld	(hl),d
-	inc	hl
-	ld	(hl),0C9h;RET
-else
-	ld	de,@TIME_IRQ##
-	call	MYHOOK
-endif
-
-;;	ld	de,@TIME_IRQ##
-;;	call	MYHOOK
-;===== end mod DOS2.50
 ;
 ;	Establish extended BIOS hook
 ;
@@ -2137,36 +2105,46 @@ endif
 ;
 ;------------------------------------------------------------------------------
 ;
+;  Timer interrupt handler.
+;
+;  Note that both in normal mode and in DOS 1 mode jumping to the previous
+;  hook will trigger the chain of interrupt routines for the drivers
+;  attached to MSX-DOS 1 kernels (each will call its "previous hook"
+;  as configured in HOOKSAV).
+
 TIMINT::
 	push	af	;Save VDP status
 	ld	a,(DOS_VER##)
 	or	a
 	jr	nz,DOS2INT
 
-	;Interrupt handler, DOS 1 version
 
-	call	TIMI_250	;Call 2.50 kernels driver interrupt routine.
-	ex	af,af'
-	pop	af		;Restore VDP status
-	ex	af,af'
-	ld	a,3
-	ld	ix,PRV1INT##
-	jp	CALBNK##
+	;Interrupt handler, DOS 1 mode version
 
-	;Interrupt handler, DOS 2 version
+	call	TIMI_NEXTOR_DRV	;Call interrupt routine for Nextor drivers.
+	pop	af		;Restore VDP status.
+	jp TM1_SAVE##	;Jump to the previous interrupt routine.
+
+
+	;Interrupt handler, normal ("DOS 2 mode") version
 
 DOS2INT:
 	call	TIME_IRQ##	;Call the master interrupt routine.
-	call	TIMI_DRV	;Call driver interrupt routine in turn.
-	call	TIMI_250	;Call 2.50 kernels driver interrupt routine.
-	pop	af		;Restore VDP status
-	jp	TIMI_SAVE##
+	call	TIMI_DOS2_DRV	;Call interrupt routines of drivers attached to DOS 2 kernels.
+	call	TIMI_NEXTOR_DRV	;Call interrupt routine for Nextor drivers.
+	pop	af		;Restore VDP status.
+	jp	TIMI_SAVE##	;Jump to the previous interrupt routine.
 
-TIMI_DRV:
+
+TIMI_DOS2_DRV:
 ;
-;	Call all possible disk drivers interrupt which is combined with
-;	new DOS2 code. This is because the disk drivers entry may not
-;	be revealed at this point (because of local banking)
+;   Call the interrupt routines of drivers attached to MSX-DOS 2 kernels.
+;   These are the ones that have an entry in HOOKSAV whose slot number matches
+;   the entry with the same index in DRVTBL, thus representing a "my hook" entry
+;   (if the slot number is different then the HOOKSAV entry has been
+;   set by a driver attached to a MSX-DOS 1 kernel, and in this case
+;   it represents a "previous hook" entry and the driver itself will call it
+;   at the end of its own interrupt routine).
 ;
 	ld	de,DRVTBL
 	ld	hl,HOOKSAV
@@ -2177,14 +2155,11 @@ scan_loop:
 	ret	z		; yes, done
 
 	inc	de
-	ld	a,(de)		;Get slot address
+	ld	a,(de)		;Get slot address from DRVTBL
 	inc	de
-	cp	(hl)		; same?
-	jr	nz,next_cart	; no, this has been set by
-				; old SETINT
-	ld	a,(MASTER_SLOT##)
-	cp	(hl)		;Is it me?
-	ld	a,(hl)		; assume not
+	cp	(hl)		; same slot number in equivalent HOOKSAV entry?
+	jr	nz,next_cart	; no, HOOKSAV entry has been set by DOS 1 SETINT
+	ld	a,(hl)		; slot number
 	push	bc		; save count
 	push	de		;  DRVTBL pointer
 	push	hl		;  HOOKSAV pointer
@@ -2192,11 +2167,10 @@ scan_loop:
 	ld	e,(hl)
 	inc	hl
 	ld	d,(hl)
-	push	af
-	pop	iy
+	db	0FDh,67h	;LD IYh,A
 	push	de
 	pop	ix
-	call	call_drv
+	call	CALSLT
 	pop	hl
 	pop	de
 	pop	bc
@@ -2207,21 +2181,18 @@ next_cart:
 	djnz	scan_loop
 	ret
 ;
-call_drv:
-	jp	nz,CALSLT	;Was slave, call thru inter-slot call
-	jp	(ix)		;Was me, just call my slot.
 ;
 ;
-TIMI_250:
+TIMI_NEXTOR_DRV:
 ;
-;       Call the interrupt routine of DOS 2.50 kernels
+;   Call the interrupt routine of all drivers attached to Nextor kernels.
 ;
 	ld	hl,KER250
 	ld	b,4
-T250_LOOP:
+TNEX_LOOP:
 	ld	a,(hl)
 	bit	6,a	;Zero if empty entry or if no interrupt declared
-	jr	z,T250_DJNZ
+	jr	z,TNEX_DJNZ
 
 	push	hl
 	push	bc
@@ -2236,10 +2207,14 @@ T250_LOOP:
 	pop	bc
 	pop	hl
 
-T250_DJNZ:
+TNEX_DJNZ:
 	inc	hl
-	djnz	T250_LOOP
+	djnz	TNEX_LOOP
 	ret
+
+call_drv:
+	jp	nz,CALSLT	;Was slave, call thru inter-slot call
+	jp	(ix)		;Was me, just call my slot.
 
 ;
 	;public	PROMPT
@@ -2370,35 +2345,6 @@ ADDHLBC:
 	ld	c,a
 	ld	b,0
 	add	hl,bc
-	ret
-
-;
-;	Define disk driver's timer interrupt entry
-;
-;	HL = timer interrupt entry address
-;
-	public	SETINT
-SETINT:
-	ex	de,hl		; de = interrupt entry
-	call	GSLOT1##
-	push	af		; save slot number
-	call	GET_DISKID_HL
-	ld	a,(hl)	;(DISKID)	; make a pointer to HOOKSAV
-	ld	hl,HOOKSAV
-	call	ADDHLBC
-	add	hl,bc
-	add	hl,bc
-	pop	af
-	ld	(hl),a
-	inc	hl
-	ld	(hl),e
-	inc	hl
-	ld	(hl),d
-;
-;	Return from disk driver interrupt (was jump to previous hook in DOS1)
-;
-	public	PRVINT
-PRVINT:
 	ret
 
 ;
@@ -2971,17 +2917,9 @@ olddos_9:
 	ld	de,@EXTBIO##
 	call	MYHOOK
 
-	ld	a,3		;Do a DOS1 style SETINT
-	ld	ix,SET1INT##
-	ld	hl,@TIME_IRQ##
-	call	CALBNK##
-
-	;ld	a,(FCALSAV##)	;TODO: Investigate why FCALSAV is all zeros
-	;or	a		;at this point (should be all RETs)
-	;jr	nz,FCALSAV_OK
-	;ld	a,0C9h	;Code for RET
-	;ld	(FCALSAV##),a
-;FCALSAV_OK:
+	ld hl,TM1_SAVE##
+	ld de,@TIME_IRQ##
+	call SAVE_AND_PATCH_HTIMI
 	
 	ld	a,3
 	ld	(MAIN_BANK##),a
@@ -2990,6 +2928,25 @@ olddos_9:
 	push	hl			; CLEAN+11h (just after RET P) of
 	ld	a,3			; INIT.Z80, not INIT.MAC (this code).
 	jp	CHGBNK
+
+
+; Make a copy of H.TIMI hook and then patch it to point to another address
+; of our slot via interslot call.
+;
+; In: HL = Address for the copy
+;     DE = New destination address (in main Nextor kernel) for the hook
+
+SAVE_AND_PATCH_HTIMI:
+	push de
+	ex de,hl
+	ld hl,H.TIMI
+	push hl
+	ld bc,5
+	ldir
+	pop hl
+	pop de
+	jp MYHOOK
+
 ;
 ;
 ;===== start add DOS2.50 (build type)

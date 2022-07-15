@@ -165,7 +165,8 @@ ram_ad	defl	DATABASE
 	var1	TIM_TICK	;Deferred timeout counter for unit descriptor
 				; timeouts.
 ;
-	var	TIMI_SAVE,5	;Save address for old interrupt hook.
+	var	TIMI_SAVE,5	;Save address for old interrupt hook
+	                ;(in DOS 1 mode TM1_SAVE is used instead)
 ;
 	var2	MAP_TAB		;Pointer to mapper records.
 ;
@@ -270,15 +271,12 @@ ram_ad	defl	DATABASE
     const   DVB_TABLE,P0_64K  ;Pointer to table of device-based drives for DOS1
     const   KSLOT,P2_64K  ;Slot of disk controller being called (used in DOS 1 mode)
 ;
-;===== start mod DOS2.50 (support MegaSCSI)
 	var1	NXT_VER		;Nextor version numbr
-	var1	MAIN_BANK
+	var1	MAIN_BANK	;Will be 0 in normal mode or 3 in DOS 1 mode
 	var	KER250,4	;Nextor kernel slots,
                     ;bit 6 is set if timer interrupt routine is to be called
 					;bit 5 is set if the driver provides configuration
-	var	_TIME_IRQ,5,F31E
-;;	spare	11
-;===== end mod DOS2.50
+	var	TM1_SAVE,5,F31E	;Save address for old interrupt hook (used in DOS 1 mode)
 ;
 ;	------------------------
 ;
@@ -583,20 +581,6 @@ ram_ad	defl	4100h
 	var3	DEV_FORMAT
 	var0	DV_MTOFF
 	var3	DEV_CMD
-
-;-----------------------------------------------------------------------------
-;
-;	DOS 1 bank routines for interrupt management
-
-ram_ad	defl	04115h-6
-
-	var3	SET1INT
-	var3	PRV1INT
-
-;-----------------------------------------------------------------------------
-;
-;  Fields in the disk amulation mode table
-
 
 ;-----------------------------------------------------------------------------
 ;
