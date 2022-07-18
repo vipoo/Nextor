@@ -13,7 +13,9 @@ MASTER_ONLY equ 0
 
 TESTADD	equ	0F3F5h
 
-TEMP_WORK equ 0C000h
+;A few Panasonic FS machines uses the area around C000-C400 at boot time,
+;so better to not use C000; C400 will do.
+TEMP_WORK equ 0C400h
 
 ;-----------------------------------------------------------------------------
 ;
