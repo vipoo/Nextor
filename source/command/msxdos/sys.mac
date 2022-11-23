@@ -37,11 +37,6 @@ TEST	EQU	FALSE				; TRUE for testing version.
 START:
 ;
 ;
-CODE	MACRO	OPCODE,ARG
-	 .8080
-	 DB	(OPCODE ARG)
-	 .Z80
-	ENDM
 ;
 ;
 LF	EQU	0AH
