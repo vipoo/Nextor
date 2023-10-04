@@ -3139,6 +3139,17 @@ VERIFY:	CALLDOS	2Eh	;Set/reset verify flag
 ;                2 = Standard
 
 BSEC_TYPE:
+if RC2014
+	; Only support DOS 2
+	; have strange unexplained scenario with floppy (via usbdrv)
+	; if no NEXTOR.SYS or COMMAND2.COM copied, the original routine
+	; seem to identify this disk as DOS 1
+	; but once a COMMAND/NEXTOR files are copied - somehow it works
+	; but this prevents the system from booting of a 2nd disk
+	LD	A, 2
+	RET
+
+else
 	;1) Check for "VOL_ID", if found, return type 1
 
 	ld	hl,BOOTAD + UPB_VOLID##
@@ -3182,6 +3193,7 @@ NOEBS:
 FAT_STR:	db	"FAT1"
 VID_STR:DEFB	"VOL_ID"
 
+endif
 
 ;--- Compare strings of fixed length
 ;    Input: HL, DE=strings, B=length
