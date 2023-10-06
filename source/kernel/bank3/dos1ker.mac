@@ -17,6 +17,8 @@
 	;ASEG
 	;ORG	04100H
 
+	INCLUDE	CONDASM.INC
+
 PRINTL	macro	NAME,VALUE
 	if2
 	.PRINTX % Size of NAME = VALUE bytes %
@@ -8843,6 +8845,10 @@ MOREFS:
 
 	db	0
 
+if RC2014
+	; not included
+
+else
 ; CALL FDISK handler.
 
 NEWSTT	equ	04601h
@@ -8864,6 +8870,7 @@ DO_FDISK:
 	call	CALBAS
 	ei
 	ret
+endif
 
 NEWTXT:	db	3ah, 94h, 0	; ":NEW"
 
@@ -9001,8 +9008,14 @@ CMD_NAMES:
 	defw	A65C4
 	defb	"FORMAT",0
 	defw	A65DC
+if RC2014
+	; not included
+
+else
+
 	db	"FDISK",0
 	dw	DO_FDISK
+endif
 	db	"MAPDRV",0
 	dw	DO_MAPDRV
 	db	"USR",0

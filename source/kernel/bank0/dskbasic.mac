@@ -1,5 +1,8 @@
 	.z80
 	title	DSKBASIC - disk BASIC statement handler -
+
+	INCLUDE	CONDASM.INC
+
 ;
 ;	Conditional assembly switches
 ;
@@ -413,8 +416,12 @@ COMMAND:
 	defw	RMDIR
 	defb	'RAMDISK',0
 	defw	RAMDISK
+if RC2014
+	; not included
+else
 	defb	'FDISK',0
 	defw	FDISK
+endif
 	defb	'MAPDRV',0
 	defw	MAPDRV
 	defb	'MAPDRVL',0
@@ -780,6 +787,9 @@ NUMINT:
 	ldir			; store to variable
 	ret
 
+if RC2014
+else
+
 	subttl	CALL FDISK command
 ;
 ;	_FDISK
@@ -800,6 +810,8 @@ FDISK::
 	ld	hl,09000h
 	ld	ix,NEWSTT
 	jp	CALBAS
+
+endif
 
 NEWTXT:	db	3ah, 94h, 0	; ":NEW"
 

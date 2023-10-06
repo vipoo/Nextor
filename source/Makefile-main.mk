@@ -111,11 +111,15 @@ $(BLDDIR)rel.rel:
 $(BLDDIR)doshead.rel: macros.inc const.inc
 $(BLDDIR)40ff:
 $(BLDDIR)b0.rel: bank.inc
-$(BLDDIR)init.rel: const.inc bank.inc
+$(BLDDIR)init.rel: condasm.inc const.inc bank.inc
 $(BLDDIR)alloc.rel:
 $(BLDDIR)bdos.rel: macros.inc const.inc
 $(BLDDIR)ramdrv.rel: macros.inc const.inc
 $(BLDDIR)chgbnk.rel:
+$(BLDDIR)dskbasic.rel: condasm.inc
+$(BLDDIR)dos1ker.rel: condasm.inc
+$(BLDDIR)dosinit.rel: condasm.inc
+$(BLDDIR)mapinit.rel: condasm.inc
 
 $(BLDDIR)b0labels.inc: b0.hex
 	@cd $(BLDDIR)
@@ -226,22 +230,6 @@ $(BLDDIR)b5.bin: b5.hex
 	rm -f b5.bin
 	hex2bin -s 4000 b5.hex
 
-$(BLDDIR)fdisk.ihx: fdisk.c fdisk_crt0.rel fdisk.c $(TOOLS_SRC)asmcall.h fdisk.h $(TOOLS_SRC)asm.h $(TOOLS_SRC)system.h $(TOOLS_SRC)dos.h $(TOOLS_SRC)types.h $(TOOLS_SRC)partit.h drivercall.h
-	@cd $(BLDDIR)
-	sdcc -DMAKEBUILD -I../../../source/$(TOOLS_SRC) --code-loc 0x4120 --data-loc 0x8020 -mz80 --disable-warning 196 --disable-warning 84 --disable-warning 85 --max-allocs-per-node 10000 --allow-unsafe-read --opt-code-size --no-std-crt0 fdisk_crt0.rel fdisk.c
-
-$(BLDDIR)fdisk.dat: fdisk.ihx
-	@cd $(BLDDIR)
-	hex2bin -e dat fdisk.ihx
-
-$(BLDDIR)fdisk2.ihx: fdisk2.c fdisk_crt0.rel fdisk.c $(TOOLS_SRC)asmcall.h fdisk.h $(TOOLS_SRC)asm.h $(TOOLS_SRC)system.h $(TOOLS_SRC)dos.h $(TOOLS_SRC)types.h $(TOOLS_SRC)partit.h drivercall.h
-	@cd $(BLDDIR)
-	sdcc -DMAKEBUILD -I../../../source/$(TOOLS_SRC) --code-loc 0x4120 --data-loc 0xA000 -mz80 --disable-warning 196 --disable-warning 84 --disable-warning 85 --max-allocs-per-node 10000 --allow-unsafe-read --opt-code-size --no-std-crt0 fdisk_crt0.rel fdisk2.c
-
-$(BLDDIR)fdisk2.dat: fdisk2.ihx
-	@cd $(BLDDIR)
-	hex2bin -e dat fdisk2.ihx
-
 # --------------------------------------------------------------------------------------
 # BANK 6
 
@@ -257,7 +245,7 @@ $(BLDDIR)b6.bin: b6.hex
 # --------------------------------------------------------------------------------------
 # BASE IMAGE
 
-$(BLDDIR)dos250ba.dat: b0.bin b1.bin b2.bin b3.bin b4.bin b5.bin b6.bin fdisk.dat fdisk2.dat b4rd.bin
+$(BLDDIR)dos250ba.dat: b0.bin b1.bin b2.bin b3.bin b4.bin b5.bin b6.bin b4rd.bin
 	@cd $(BLDDIR)
 	cat b0.bin b1.bin b2.bin b3.bin b4.bin b5.bin b6.bin > dos250ba.dat
 	dd status=none conv=notrunc if=dos250ba.dat of=doshead.bin bs=1 count=255
@@ -265,8 +253,6 @@ $(BLDDIR)dos250ba.dat: b0.bin b1.bin b2.bin b3.bin b4.bin b5.bin b6.bin fdisk.da
 	dd status=none conv=notrunc if=doshead.bin of=dos250ba.dat bs=1 count=255 seek=32k
 	dd status=none conv=notrunc if=doshead.bin of=dos250ba.dat bs=1 count=255 seek=64k
 	dd status=none conv=notrunc if=doshead.bin of=dos250ba.dat bs=1 count=255 seek=96k
-	dd status=none conv=notrunc if=fdisk.dat of=dos250ba.dat bs=1 count=16000 seek=82176
-	dd status=none conv=notrunc if=fdisk2.dat of=dos250ba.dat bs=1 count=8000 seek=98560
 	dd status=none conv=notrunc if=doshead.bin of=dos250ba.dat bs=1 count=255 seek=80k
 	dd status=none conv=notrunc if=b4rd.bin of=dos250ba.dat bs=1 count=15 seek=65664
 
