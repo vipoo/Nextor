@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-outfile=$(tempfile)
+outfile=$(mktemp)
 
 rm -f "${1}"
 
