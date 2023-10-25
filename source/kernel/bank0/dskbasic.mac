@@ -33,7 +33,7 @@ BASV_HI	equ	1
 ifdef VER890508
 BASV_LO	equ	0
 else
-BASV_LO	equ	0
+BASV_LO	equ	2
 endif
 ;
 ;	MACRO
