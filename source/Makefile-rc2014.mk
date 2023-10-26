@@ -58,7 +58,7 @@ endif
 
 .PHONY: all
 all: tools $(BLDDIR)nextor.sys $(BLDDIR)command2.com $(BLDDIR)fixdisk.com $(BLDDIR)chkdsk.com $(LINUX_TOOLS_DIR)mknexrom $(BLDDIR)dos250ba.dat
-	@
+	@printf ""
 
 include Makefile-main.mk
 
