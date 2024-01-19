@@ -682,7 +682,7 @@ NSTR:		INC	A		; A=choice.
 		SUBTTL	IF
 ;******************************************************************************
 ;
-;        This is the IF command routine, 
+;        This is the IF command routine,
 ;
 ;	NZ     => error
 ;	Z & NC => execute command
@@ -798,53 +798,6 @@ BADIF:		LD	A,.IPARM##
 ;
 $NOT:		DB	"NOT",0
 $EXIST:		DB	"EXIST",0
-;
-;
-;
-		SUBTTL	MODE
-;******************************************************************************
-;
-;        This is the MODE command routine, which simply takes  the  number  of
-; columns  on the screen required (1-80) and changes to the appropraite screen
-; mode.
-;
-;
-@MODE::		AND	(HL)
-		LD	A,.NOPARM##
-		RET	Z
-;
-		CALL	GET8##		; Get numbere of columns.
-		CALL	Z,CHKNO##
-		CALL	Z,CHKEOL##
-		RET	NZ
-;
-		OR	E
-		JR	Z,IPARM		; MODE 0 is not allowed.
-;
-		CP	81
-		JR	NC,IPARM	; Nor is MODE >80.
-;
-		LD	IX,INITXT	; Assume hi-res text mode.
-		LD	HL,LINL40
-		CP	33		; 33-80 columns ?
-		JR	NC,GOTCOLS	; Go if yes.
-;
-		LD	IX,INIT32	; Else lo-res text mode.
-		INC	HL
-GOTCOLS:	LD	(HL),A		; Save no. columns required.
-		LD	IY,(EXPTBL##-1)	; Get slot address of main ROM.
-		LD	HL,0
-		ADD	HL,SP		; Save SP.
-		LD	SP,P3_STACK##	; Use a tempory stack in
-		PUSH	HL		;   page 3.
-		CALL	CALSLT##	; Call main ROM to change screen mode.
-		POP	HL
-		LD	SP,HL
-		XOR	A		; No error.
-		RET
-;
-IPARM:		LD	A,.IPARM##
-		RET
 ;
 ;
 ;
@@ -1465,7 +1418,7 @@ VERMSG:		DEFB	'COMMAND2.COM version '
 		DEFB	CRYEAR##/  10 MOD 10 +'0'
 		DEFB	CRYEAR##      MOD 10 +'0'
 		DEFB	' ASCII Corporation'
-		
+
 if RC2014
 		DEFB	CR, LF
 		DEFB	'Copyright '

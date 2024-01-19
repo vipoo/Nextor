@@ -2022,7 +2022,6 @@ endif
 		CMD	ECHO		; Print the parameters.
 		CMD	EXIT		; Exit COMMAND with an error code.
 		CMD	HELP		; Give help for command.
-		CMD	MODE		; Change screen mode etc.
 		CMD	MOVE		; Move files.
 		CMD	PATH		; Change search path.
 		CMD	TIME		; Display and set current time.

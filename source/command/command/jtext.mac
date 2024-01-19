@@ -428,7 +428,6 @@ endif
 	db	"KMODE .... 漢字モードの変更",CR,LF
 	db	"MD ....... MKDIRの省略形",CR,LF
 	db	"MKDIR .... サブディレクトリの作成",CR,LF
-	db	"MODE ..... スクリーンモードの変更",CR,LF
 	db	"MOVE ..... ファイルの移動",CR,LF
 	db	"MVDIR .... サブディレクトリの移動",CR,LF
 	db	"PATH ..... コマンドサーチパスの表示/設定",CR,LF

@@ -470,7 +470,6 @@ endif
 	 DEFB	'KMODE .... sets or resets "Kanji Mode"',CR,LF
 	 DEFB	'MD ....... see MKDIR',CR,LF
 	 DEFB	'MKDIR .... creates a new sub-directory',CR,LF
-	 DEFB	'MODE ..... changes the screen mode',CR,LF
 	 DEFB	'MOVE ..... moves files on a disk',CR,LF
 	 DEFB	'MVDIR .... moves sub-directories',CR,LF
 	 DEFB	'PATH ..... displays/sets the command search path',CR,LF
